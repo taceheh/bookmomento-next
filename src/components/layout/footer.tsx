@@ -2,7 +2,7 @@ export const Footer = () => {
   return (
     <footer className="w-full border-t bg-white text-xs text-gray-400 py-6">
       <div className="max-w-screen-sm mx-auto px-4 text-center space-y-2">
-        <p>© 2025 BOOK MOMENTO</p>
+        <p>© 2025 책담 冊談</p>
         <p>
           Built with{' '}
           <span className="font-semibold text-gray-500">Next.js</span> &
