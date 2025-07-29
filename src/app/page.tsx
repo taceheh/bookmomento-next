@@ -1,103 +1,106 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { SortTabBar } from '@/components/sortTabBar';
+import { useEffect, useState } from 'react';
+
+interface Book {
+  isbn: string;
+  title: string;
+  cover: string;
+}
+
+interface SectionProps {
+  title: string;
+  books: Book[];
+}
+
+export default function HomePage() {
+  // const [bestSellers, setBestSellers] = useState([]);
+  const [newBooks, setNewBooks] = useState([]);
+  const [reviewRanking, setReviewRanking] = useState([]);
+  const [likeRanking, setLikeRanking] = useState([]);
+  const [query, setQuery] = useState('');
+  // const [searchResults, setSearchResults] = useState([]);
+  const [bestSellers, setBestSellers] = useState<Book[]>([]);
+  const [searchResults, setSearchResults] = useState<Book[]>([]);
+
+  useEffect(() => {
+    fetch('/api/bestseller')
+      .then((res) => res.json())
+      .then(setBestSellers);
+
+    fetch('/api/brendnew')
+      .then((res) => res.json())
+      .then(setNewBooks);
+
+    fetch('/api/mostcomments')
+      .then((res) => res.json())
+      .then(setReviewRanking);
+
+    fetch('/api/mostlike')
+      .then((res) => res.json())
+      .then(setLikeRanking);
+  }, []);
+
+  const handleSearch = async () => {
+    if (!query.trim()) return;
+    const res = await fetch(`/search?title=${query}`);
+    const data = await res.json();
+    setSearchResults(data);
+  };
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <>
+      <SortTabBar />
+      <main className="max-w-screen-md mx-auto px-4 py-6 space-y-8">
+        {searchResults.length > 0 && (
+          <div className="grid grid-cols-2 gap-4">
+            {searchResults.map((book) => (
+              <div key={book.isbn}>
+                <button
+                  onClick={() =>
+                    (window.location.href = `/detailGo?isbn=${book.isbn}`)
+                  }
+                >
+                  <img src={book.cover} alt="book cover" />
+                  <div>{book.title}</div>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+        <Section title="베스트셀러" books={bestSellers} />
+        <Section title="신간 추천" books={newBooks} />
+        <Section title="리뷰 순위" books={reviewRanking} />
+        <Section title="좋아요 베스트" books={likeRanking} />
+
+        <footer className="text-center text-xs text-gray-400 border-t pt-6">
+          © 2025 책담 冊談
+        </footer>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+    </>
+  );
+}
+
+function Section({ title, books }: SectionProps) {
+  return (
+    <section className="space-y-2 pb-10">
+      <h2 className="text-lg font-bold">{title}</h2>
+      <div className="grid grid-cols-5 gap-4 h-40">
+        {books?.map((book) => (
+          <div key={book.isbn}>
+            <button
+              onClick={() =>
+                (window.location.href = `/detailGo?isbn=${book.isbn}`)
+              }
+            >
+              <img className="w-30 h-40" src={book.cover} alt="book cover" />
+              <div className="text-sm pt-2 line-clamp-2">{book.title}</div>
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
