@@ -1,6 +1,7 @@
 'use client';
 
 import { SortTabBar } from '@/components/sortTabBar';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 interface Book {
@@ -53,6 +54,14 @@ export default function HomePage() {
     <>
       <SortTabBar />
       <main className="max-w-screen-md mx-auto px-4 py-6 space-y-8">
+        <div className="bg-black h-[400px]"></div>
+        <nav className="justify-between flex">
+          <div className="w-20 h-20 border-black-100 border-1"></div>
+          <div className="w-20 h-20 border-black-100 border-1"></div>
+          <div className="w-20 h-20 border-black-100 border-1"></div>
+          <div className="w-20 h-20 border-black-100 border-1"></div>
+          <div className="w-20 h-20 border-black-100 border-1"></div>
+        </nav>
         {searchResults.length > 0 && (
           <div className="grid grid-cols-2 gap-4">
             {searchResults.map((book) => (
@@ -89,16 +98,10 @@ function Section({ title, books }: SectionProps) {
       <h2 className="text-lg font-bold">{title}</h2>
       <div className="grid grid-cols-5 gap-4 h-40">
         {books?.map((book) => (
-          <div key={book.isbn}>
-            <button
-              onClick={() =>
-                (window.location.href = `/detailGo?isbn=${book.isbn}`)
-              }
-            >
-              <img className="w-30 h-40" src={book.cover} alt="book cover" />
-              <div className="text-sm pt-2 line-clamp-2">{book.title}</div>
-            </button>
-          </div>
+          <Link href={`/book/${book.isbn}`} key={book.isbn}>
+            <img className="w-30 h-40" src={book.cover} alt="book cover" />
+            <div className="text-sm pt-2 line-clamp-2">{book.title}</div>
+          </Link>
         ))}
       </div>
     </section>
