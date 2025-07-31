@@ -1,19 +1,8 @@
 'use client';
 
+import { Book } from '@/types/book';
 import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { use, useEffect, useState } from 'react';
-
-interface Book {
-  author: string;
-  categoryName: string;
-  cover: string;
-  description: string;
-  isbn: string;
-  priceStandard: string;
-  pubDate: string;
-  publisher: string;
-  title: string;
-}
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);

@@ -1,6 +1,7 @@
 'use client';
 
 import { Bell, Search, UserRound } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 
 const tab = ['베스트셀러', '신간추천', '리뷰 순위', '좋아요 순위'];
@@ -29,10 +30,12 @@ export const SortTabBar = () => {
             placeholder="검색어 입력"
             className="bg-transparent outline-none w-full text-sm text-black"
           />
-          <Search
-            className="w-4 ml-2 cursor-pointer"
-            onClick={handleSearchClick}
-          />
+          <Link href={`/search?q=${query}`}>
+            <Search
+              className="w-4 ml-2 cursor-pointer"
+              onClick={handleSearchClick}
+            />
+          </Link>
         </div>
       )}
 
