@@ -6,12 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",
     "@prisma/adapter-neon": "^6.13.0",
     "@prisma/client": "^6.13.0",
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.53.0",
     "@tailwindcss/line-clamp": "^0.4.4",
     "axios": "^1.10.0",
     "eslint-config-prettier": "^10.1.5",
