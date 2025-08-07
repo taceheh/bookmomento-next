@@ -1,33 +1,46 @@
 import { supabase } from '@/lib/supabase';
-import { NextResponse } from 'next/server';
-// The client you created from the Server-Side Auth instructions
+import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
 
-export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+const prisma = new PrismaClient();
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');
-  // if "next" is in param, use it as the redirect URL
-  let next = searchParams.get('next') ?? '/';
-  if (!next.startsWith('/')) {
-    // if "next" is not a relative URL, use the default
-    next = '/';
+  const next = searchParams.get('next') ?? '/';
+
+  if (!code) {
+    return NextResponse.redirect(`/auth/auth-code-error`);
   }
 
-  if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      const forwardedHost = request.headers.get('x-forwarded-host'); // original origin before load balancer
-      const isLocalEnv = process.env.NODE_ENV === 'development';
-      if (isLocalEnv) {
-        // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
-        return NextResponse.redirect(`${origin}${next}`);
-      } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`);
-      } else {
-        return NextResponse.redirect(`${origin}${next}`);
-      }
-    }
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (error || !data.session?.user) {
+    console.error('Supabase 인증 오류:', error);
+    return NextResponse.redirect(`/auth/auth-code-error`);
   }
 
-  // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+  const user = data.session.user;
+
+  try {
+    await prisma.users.upsert({
+      where: { id: user.id },
+      update: {
+        email: user.email,
+        nickname: user.user_metadata?.name ?? '',
+        provider: user.app_metadata?.provider,
+      },
+      create: {
+        id: user.id,
+        email: user.email,
+        nickname: user.user_metadata?.name ?? '',
+        provider: user.app_metadata?.provider,
+      },
+    });
+    console.log('Prisma upsert 완료');
+  } catch (e) {
+    console.error('Prisma upsert 실패:', e);
+  }
+
+  return NextResponse.redirect(next);
 }
