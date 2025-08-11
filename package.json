@@ -16,6 +16,7 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.53.0",
     "@tailwindcss/line-clamp": "^0.4.4",
+    "@tanstack/react-router": "^1.131.5",
     "axios": "^1.10.0",
     "eslint-config-prettier": "^10.1.5",
     "lucide-react": "^0.533.0",
@@ -23,7 +24,8 @@
     "prettier": "^3.6.2",
     "prisma": "^6.13.0",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "zustand": "^5.0.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
