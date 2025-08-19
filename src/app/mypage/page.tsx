@@ -9,6 +9,11 @@ export const dynamic = 'force-dynamic';
 export default async function Page() {
   const supabase = await supabaseServer(); // ← await 중요
   const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+  console.log(session);
+  const {
     data: { user },
   } = await supabase.auth.getUser();
 

@@ -1,5 +1,7 @@
 'use client';
 
+import { supabase } from '@/lib/supabase';
+import { supabaseServer } from '@/lib/supabaseServer';
 import { Bell, Search, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -49,7 +51,9 @@ export const SortTabBar = () => {
 
       <div className="flex items-center">
         <Bell className="w-5" />
-        <UserRound className="w-5 ml-4" />
+        <Link href="/mypage" prefetch={false} aria-label="마이페이지">
+          <UserRound className="w-5 ml-4" />
+        </Link>
       </div>
     </nav>
   );
