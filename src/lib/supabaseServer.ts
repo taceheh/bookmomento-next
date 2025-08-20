@@ -1,26 +1,27 @@
-// lib/supabaseServer.ts
+// src/lib/supabaseServer.ts
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 
-// Next.js 15: cookies()가 async → 이 함수도 async
 export async function supabaseServer() {
-  const cookieStore = await cookies();
+  const jar = await cookies(); // Next 15: async
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      // Next 15용 쿠키 인터페이스: getAll / setAll
       cookies: {
         getAll() {
-          return cookieStore.getAll().map((c) => ({
-            name: c.name,
-            value: c.value,
-          }));
+          // Next 15 cookies().getAll()는 {name, value, ...} 배열을 반환
+          return jar.getAll().map((c) => ({ name: c.name, value: c.value }));
         },
         setAll(cookiesToSet) {
-          for (const { name, value, options } of cookiesToSet) {
-            cookieStore.set({ name, value, ...options });
+          // Server Action/Route Handler에서는 허용, RSC에서는 예외 → 무시
+          try {
+            for (const { name, value, options } of cookiesToSet) {
+              jar.set({ name, value, ...options });
+            }
+          } catch {
+            // RSC 환경: 쿠키 수정 불가 → 조용히 no-op
           }
         },
       },
