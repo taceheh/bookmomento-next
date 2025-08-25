@@ -14,7 +14,7 @@
     "@prisma/adapter-neon": "^6.13.0",
     "@prisma/client": "^6.13.0",
     "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.53.0",
+    "@supabase/supabase-js": "^2.56.0",
     "@tailwindcss/line-clamp": "^0.4.4",
     "@tanstack/react-router": "^1.131.5",
     "axios": "^1.10.0",
