@@ -7,11 +7,11 @@ export async function GET(req: NextRequest) {
   const code = url.searchParams.get('code');
   const next = url.searchParams.get('next') ?? '/';
 
-  const res = NextResponse.redirect(new URL(next, url.origin)); // 여기에 setAll 연결
-
   if (!code) {
-    return NextResponse.redirect(new URL('/signin?error=no_code', url.origin));
+    return NextResponse.redirect(new URL('/auth/auth-code-error', url.origin));
   }
+
+  const res = NextResponse.redirect(new URL(next, url.origin));
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
           req.cookies.getAll().map((c) => ({ name: c.name, value: c.value })),
         setAll: (cookiesToSet) => {
           for (const { name, value, options } of cookiesToSet) {
-            res.cookies.set({ name, value, ...options }); // 응답에 기록
+            res.cookies.set({ name, value, ...options });
           }
         },
       },
@@ -31,10 +31,9 @@ export async function GET(req: NextRequest) {
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
-    return NextResponse.redirect(
-      new URL(`/signin?error=${encodeURIComponent(error.message)}`, url.origin),
-    );
+    console.error('exchangeCodeForSession error:', error);
+    return NextResponse.redirect(new URL('/auth/auth-code-error', url.origin));
   }
 
-  return res; // Set-Cookie가 포함되어 내려감
+  return res;
 }

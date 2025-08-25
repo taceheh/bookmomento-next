@@ -4,10 +4,11 @@ import { supabase } from '@/lib/supabase';
 
 export default function KakaoLoginButton() {
   async function signInWithKakao() {
+    const next = encodeURIComponent('/mypage');
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'kakao',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `http://localhost:3000/auth/callback?next=${next}`,
       },
     });
 
