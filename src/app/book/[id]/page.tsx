@@ -61,6 +61,12 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
     console.log('insert ok:', res.data);
     setText('');
+
+    const r = await fetch(
+      `/api/comments?book_isbn=${encodeURIComponent(id)}&parent_id=null`,
+    );
+    const d = await r.json();
+    setComments(d.items);
   }
 
   if (!book) return <div>로딩 중...</div>;
