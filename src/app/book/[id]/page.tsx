@@ -4,22 +4,13 @@ import { Book } from '@/types/book';
 import axios from 'axios';
 import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { use, useEffect, useState } from 'react';
-const payload = {
-  user_id: '11111111-1111-1111-1111-111111111111', // 존재하는 사용자 ID면 더 좋음(외래키가 있다면 필수)
-  book_isbn: '9781234567890',
-  parent_id: null,
-  root_id: '22222222-2222-2222-2222-222222222222',
-  depth: 0,
-  body: 'axios로 삽입 테스트입니다',
-  reply_count: 0,
-  // created_at/updated_at은 now() 기본값이 있으므로 생략
-  // deleted_at은 기본 null
-};
+
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
 
   const [book, setBook] = useState<Book | null>(null);
   const [text, setText] = useState('');
+  const [comments, setComments] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchBook = async () => {
@@ -36,17 +27,35 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       }
     };
 
+    const fetchComment = async () => {
+      if (!id) return;
+      const res = await fetch(
+        `/api/comments?book_isbn=${encodeURIComponent(id)}&parent_id=null`,
+      );
+      const data = await res.json();
+      setComments(data.items);
+    };
+
     fetchBook();
+    fetchComment();
   }, [id]);
+  useEffect(() => {
+    const fetchComment = async () => {
+      if (!id) return;
+      const res = await fetch(
+        `/api/comments?book_isbn=${encodeURIComponent(id)}&parent_id=null`,
+      );
+      const data = await res.json();
+      setComments(data.items);
+    };
+    fetchComment();
+  }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
     const res = await axios.post('/api/comments', {
       book_isbn: id, // 상세 페이지 ISBN
       parent_id: null, // 최상위 댓글이면 null
-      root_id: null, // 스키마 규칙에 맞춰 필요 시 서버/트리거에서 세팅
-      depth: 0,
       body: text || '테스트 코멘트',
     });
 
@@ -120,6 +129,13 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             </button>
           </form>
         </div>
+        {comments.map((comment) => {
+          return (
+            <div key={comment.id}>
+              {comment.body} {comment.created_at}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
