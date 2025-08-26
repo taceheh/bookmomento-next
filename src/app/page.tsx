@@ -26,19 +26,19 @@ export default function HomePage() {
   const [searchResults, setSearchResults] = useState<Book[]>([]);
 
   useEffect(() => {
-    fetch('/api/bestseller')
+    fetch('/api/book/bestseller')
       .then((res) => res.json())
       .then(setBestSellers);
 
-    fetch('/api/brendnew')
+    fetch('/api/book/brendnew')
       .then((res) => res.json())
       .then(setNewBooks);
 
-    fetch('/api/mostcomments')
+    fetch('/api/book/mostcomments')
       .then((res) => res.json())
       .then(setReviewRanking);
 
-    fetch('/api/mostlike')
+    fetch('/api/book/mostlike')
       .then((res) => res.json())
       .then(setLikeRanking);
   }, []);
