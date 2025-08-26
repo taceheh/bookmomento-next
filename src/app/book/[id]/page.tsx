@@ -1,6 +1,7 @@
 'use client';
 
 import { Book } from '@/types/book';
+import axios from 'axios';
 import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { use, useEffect, useState } from 'react';
 
@@ -8,6 +9,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
 
   const [book, setBook] = useState<Book | null>(null);
+  const [text, setText] = useState('');
+  const [comments, setComments] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchBook = async () => {
@@ -24,8 +27,47 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       }
     };
 
+    const fetchComment = async () => {
+      if (!id) return;
+      const res = await fetch(
+        `/api/comments?book_isbn=${encodeURIComponent(id)}&parent_id=null`,
+      );
+      const data = await res.json();
+      setComments(data.items);
+    };
+
     fetchBook();
+    fetchComment();
   }, [id]);
+  useEffect(() => {
+    const fetchComment = async () => {
+      if (!id) return;
+      const res = await fetch(
+        `/api/comments?book_isbn=${encodeURIComponent(id)}&parent_id=null`,
+      );
+      const data = await res.json();
+      setComments(data.items);
+    };
+    fetchComment();
+  }, []);
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const res = await axios.post('/api/comments', {
+      book_isbn: id, // 상세 페이지 ISBN
+      parent_id: null, // 최상위 댓글이면 null
+      body: text || '테스트 코멘트',
+    });
+
+    console.log('insert ok:', res.data);
+    setText('');
+
+    const r = await fetch(
+      `/api/comments?book_isbn=${encodeURIComponent(id)}&parent_id=null`,
+    );
+    const d = await r.json();
+    setComments(d.items);
+  }
 
   if (!book) return <div>로딩 중...</div>;
   console.log(book);
@@ -82,13 +124,24 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       <div className="bottom-0.5 border-t-[0.4mm] border-[#DBDBDB] py-10 px-6">
         <div className="pb-10">리뷰 (64)</div>
         <div>
-          <form>
-            <input className="bottom-0.5 border-[0.4mm] border-[#DBDBDB] w-full h-20" />
+          <form onSubmit={onSubmit}>
+            <input
+              className="bottom-0.5 border-[0.4mm] border-[#DBDBDB] w-full h-20"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
             <button className="block w-full text-sm p-2 text-center border-1 mt-1">
               리뷰 작성
             </button>
           </form>
         </div>
+        {comments.map((comment) => {
+          return (
+            <div key={comment.id}>
+              {comment.body} {comment.created_at}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
