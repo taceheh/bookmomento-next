@@ -15,7 +15,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   useEffect(() => {
     const fetchBook = async () => {
       try {
-        const res = await fetch(`/api/bookdetail?isbn=${id}`);
+        const res = await fetch(`/api/book/bookdetail?isbn=${id}`);
         if (!res.ok) {
           const error = await res.json();
           throw new Error(error.error);
@@ -70,7 +70,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   }
 
   if (!book) return <div>로딩 중...</div>;
-  console.log(book);
   return (
     <div>
       <div className="flex h-20 items-center text-sm">
