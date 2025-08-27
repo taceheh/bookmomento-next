@@ -44,3 +44,21 @@ model users {
   created_at DateTime?  @default(now()) @db.Timestamptz(6)
   comments   comments[]
 }
+
+model book_reactions {
+  id         BigInt        @id @default(autoincrement())
+  user_id    String        @db.Uuid
+  book_id    String
+  reaction   reaction_type
+  created_at DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at DateTime      @default(now()) @db.Timestamptz(6)
+
+  @@unique([user_id, book_id], map: "uq_user_book")
+  @@index([book_id, reaction], map: "idx_book_reactions_book_reaction")
+  @@index([user_id], map: "idx_book_reactions_user")
+}
+
+enum reaction_type {
+  like
+  dislike
+}
