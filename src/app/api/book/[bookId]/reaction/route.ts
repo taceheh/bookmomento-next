@@ -77,7 +77,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: { bookId: string } },
 ) {
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer();
   const {
     data: { user },
     error: authErr,
