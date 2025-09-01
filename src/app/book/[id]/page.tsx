@@ -100,7 +100,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           <div className="text-sm pt-4">{book?.author}</div>
           <div className="text-sm pt-2">{book?.publisher}</div>
         </div>
-
+        {/* TODO: 좋아요, 싫어요 버튼 컴포넌트로 분리 */}
         <div className="px-6 text-sm pt-4 flex pb-10 bottom-0.5 border-b-[0.4mm] border-[#DBDBDB]">
           <div className="inline-flex items-center px-5 py-1 bg-gray-100 rounded-full text-sm mr-2">
             <button className="flex items-center space-x-2">
