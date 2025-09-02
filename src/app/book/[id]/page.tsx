@@ -11,6 +11,29 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [book, setBook] = useState<Book | null>(null);
   const [text, setText] = useState('');
   const [comments, setComments] = useState<any[]>([]);
+  // 컴포넌트 내부 상단에 추가
+  type Reaction = 'like' | 'dislike';
+
+  const [likes, setLikes] = useState(0);
+  const [dislikes, setDislikes] = useState(0);
+  const [myReaction, setMyReaction] = useState<Reaction | null>(null);
+  const [reacting, setReacting] = useState(false);
+
+  // 초기 집계 + 내 상태 로드
+  useEffect(() => {
+    if (!id) return;
+    (async () => {
+      const res = await fetch(`/api/book/${encodeURIComponent(id)}/reactions`, {
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const j = await res.json();
+        setLikes(j.likes ?? 0);
+        setDislikes(j.dislikes ?? 0);
+        setMyReaction(j.myReaction ?? null);
+      }
+    })();
+  }, [id]);
 
   useEffect(() => {
     const fetchBook = async () => {
@@ -68,6 +91,57 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     const d = await r.json();
     setComments(d.items);
   }
+  // 컴포넌트 내부에 추가
+  async function toggle(reaction: Reaction) {
+    if (!id || reacting) return;
+    setReacting(true);
+
+    // 낙관적 업데이트
+    const prev = myReaction;
+    if (prev === reaction) {
+      // 같은 반응 → 취소
+      if (reaction === 'like') setLikes((v) => Math.max(0, v - 1));
+      else setDislikes((v) => Math.max(0, v - 1));
+      setMyReaction(null);
+    } else if (prev == null) {
+      // 없던 반응 → 추가
+      if (reaction === 'like') setLikes((v) => v + 1);
+      else setDislikes((v) => v + 1);
+      setMyReaction(reaction);
+    } else {
+      // 다른 반응 → 전환
+      if (prev === 'like') {
+        setLikes((v) => Math.max(0, v - 1));
+        setDislikes((v) => v + 1);
+      } else {
+        setDislikes((v) => Math.max(0, v - 1));
+        setLikes((v) => v + 1);
+      }
+      setMyReaction(reaction);
+    }
+
+    // 서버 반영
+    const res = await fetch(`/api/book/${encodeURIComponent(id)}/reaction`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reaction }),
+    });
+
+    if (!res.ok) {
+      // 실패 시 재동기화(롤백)
+      const agg = await fetch(`/api/book/${encodeURIComponent(id)}/reactions`, {
+        cache: 'no-store',
+      });
+      if (agg.ok) {
+        const j = await agg.json();
+        setLikes(j.likes ?? 0);
+        setDislikes(j.dislikes ?? 0);
+        setMyReaction(j.myReaction ?? null);
+      }
+    }
+
+    setReacting(false);
+  }
 
   if (!book) return <div>로딩 중...</div>;
   return (
@@ -101,22 +175,41 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           <div className="text-sm pt-2">{book?.publisher}</div>
         </div>
         {/* TODO: 좋아요, 싫어요 버튼 컴포넌트로 분리 */}
+        {/* 좋아요/싫어요 영역 */}
         <div className="px-6 text-sm pt-4 flex pb-10 bottom-0.5 border-b-[0.4mm] border-[#DBDBDB]">
           <div className="inline-flex items-center px-5 py-1 bg-gray-100 rounded-full text-sm mr-2">
-            <button className="flex items-center space-x-2">
-              <ThumbsUp className="w-4" />
+            <button
+              onClick={() => toggle('like')}
+              disabled={reacting}
+              aria-pressed={myReaction === 'like'}
+              className="flex items-center space-x-2"
+              title="좋아요"
+            >
+              <ThumbsUp
+                className={`w-4 ${myReaction === 'like' ? 'opacity-100' : 'opacity-60'}`}
+              />
             </button>
             <span className="mx-2 h-4 w-px bg-gray-300" />
-            <span className="text-black">5</span>
+            <span className="text-black">{likes}</span>
           </div>
+
           <div className="inline-flex items-center px-5 py-1 bg-gray-100 rounded-full text-sm">
-            <button className="flex items-center space-x-2">
-              <ThumbsDown color="#313131" className="w-4 " />
+            <button
+              onClick={() => toggle('dislike')}
+              disabled={reacting}
+              aria-pressed={myReaction === 'dislike'}
+              className="flex items-center space-x-2"
+              title="싫어요"
+            >
+              <ThumbsDown
+                className={`w-4 ${myReaction === 'dislike' ? 'opacity-100' : 'opacity-60'}`}
+              />
             </button>
             <span className="mx-2 h-4 w-px bg-gray-300" />
-            <span className="text-black">5</span>
+            <span className="text-black">{dislikes}</span>
           </div>
         </div>
+
         <div className="px-6 py-10 text-sm">{book?.description}</div>
       </div>
 
