@@ -7,6 +7,57 @@ export const revalidate = 0;
 type Reaction = 'like' | 'dislike';
 const isReaction = (v: any): v is Reaction => v === 'like' || v === 'dislike';
 
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ bookId: string }> },
+) {
+  const { bookId } = await params;
+  const decoded = decodeURIComponent(bookId);
+
+  const supabase = await supabaseServer();
+
+  // 좋아요 / 싫어요 카운트
+  const [likeRes, dislikeRes] = await Promise.all([
+    supabase
+      .from('book_reactions')
+      .select('*', { count: 'exact', head: true })
+      .eq('book_id', decoded)
+      .eq('reaction', 'like'),
+    supabase
+      .from('book_reactions')
+      .select('*', { count: 'exact', head: true })
+      .eq('book_id', decoded)
+      .eq('reaction', 'dislike'),
+  ]);
+  if (likeRes.error || dislikeRes.error) {
+    return NextResponse.json(
+      { error: likeRes.error?.message || dislikeRes.error?.message },
+      { status: 500 },
+    );
+  }
+
+  // 내 반응(비로그인 허용)
+  let myReaction: 'like' | 'dislike' | null = null;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    const { data: mine } = await supabase
+      .from('book_reactions')
+      .select('reaction')
+      .eq('book_id', decoded)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    myReaction = (mine?.reaction as any) ?? null;
+  }
+
+  return NextResponse.json({
+    likes: likeRes.count ?? 0,
+    dislikes: dislikeRes.count ?? 0,
+    myReaction,
+  });
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: { bookId: string } },
@@ -20,7 +71,8 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const bookId = decodeURIComponent(params.bookId);
+  const { bookId } = await params;
+  const decodedBookId = decodeURIComponent(bookId);
   const body = await req.json().catch(() => ({}));
   const reaction = body?.reaction as Reaction;
   if (!isReaction(reaction)) {
@@ -35,7 +87,7 @@ export async function POST(
     .from('book_reactions')
     .select('id,reaction')
     .eq('user_id', user.id)
-    .eq('book_id', bookId)
+    .eq('book_id', decodedBookId)
     .maybeSingle();
 
   if (selErr) {
@@ -58,7 +110,7 @@ export async function POST(
   const { data: saved, error: upErr } = await supabase
     .from('book_reactions')
     .upsert(
-      { user_id: user.id, book_id: bookId, reaction },
+      { user_id: user.id, book_id: decodedBookId, reaction },
       { onConflict: 'user_id,book_id' },
     )
     .select('reaction')
@@ -72,10 +124,9 @@ export async function POST(
     myReaction: saved?.reaction ?? reaction,
   });
 }
-
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { bookId: string } },
+  { params }: { params: Promise<{ bookId: string }> },
 ) {
   const supabase = await supabaseServer();
   const {
@@ -86,15 +137,16 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const bookId = decodeURIComponent(params.bookId);
+  const { bookId } = await params;
+  const decoded = decodeURIComponent(bookId);
+
   const { error } = await supabase
     .from('book_reactions')
     .delete()
     .eq('user_id', user.id)
-    .eq('book_id', bookId);
+    .eq('book_id', decoded);
 
-  if (error) {
+  if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
-  }
   return NextResponse.json({ status: 'removed', myReaction: null });
 }

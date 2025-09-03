@@ -23,7 +23,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   useEffect(() => {
     if (!id) return;
     (async () => {
-      const res = await fetch(`/api/book/${encodeURIComponent(id)}/reactions`, {
+      const res = await fetch(`/api/book/${encodeURIComponent(id)}/reaction`, {
         cache: 'no-store',
       });
       if (res.ok) {
@@ -62,17 +62,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     fetchBook();
     fetchComment();
   }, [id]);
-  useEffect(() => {
-    const fetchComment = async () => {
-      if (!id) return;
-      const res = await fetch(
-        `/api/comments?book_isbn=${encodeURIComponent(id)}&parent_id=null`,
-      );
-      const data = await res.json();
-      setComments(data.items);
-    };
-    fetchComment();
-  }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
