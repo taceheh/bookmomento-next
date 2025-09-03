@@ -21,12 +21,12 @@ export async function GET(
     supabase
       .from('book_reactions')
       .select('*', { count: 'exact', head: true })
-      .eq('book_id', decoded)
+      .eq('book_isbn', decoded)
       .eq('reaction', 'like'),
     supabase
       .from('book_reactions')
       .select('*', { count: 'exact', head: true })
-      .eq('book_id', decoded)
+      .eq('book_isbn', decoded)
       .eq('reaction', 'dislike'),
   ]);
   if (likeRes.error || dislikeRes.error) {
@@ -45,7 +45,7 @@ export async function GET(
     const { data: mine } = await supabase
       .from('book_reactions')
       .select('reaction')
-      .eq('book_id', decoded)
+      .eq('book_isbn', decoded)
       .eq('user_id', user.id)
       .maybeSingle();
     myReaction = (mine?.reaction as any) ?? null;
@@ -87,7 +87,7 @@ export async function POST(
     .from('book_reactions')
     .select('id,reaction')
     .eq('user_id', user.id)
-    .eq('book_id', decodedBookId)
+    .eq('book_isbn', decodedBookId)
     .maybeSingle();
 
   if (selErr) {
@@ -110,8 +110,8 @@ export async function POST(
   const { data: saved, error: upErr } = await supabase
     .from('book_reactions')
     .upsert(
-      { user_id: user.id, book_id: decodedBookId, reaction },
-      { onConflict: 'user_id,book_id' },
+      { user_id: user.id, book_isbn: decodedBookId, reaction },
+      { onConflict: 'user_id,book_isbn' },
     )
     .select('reaction')
     .single();
@@ -144,7 +144,7 @@ export async function DELETE(
     .from('book_reactions')
     .delete()
     .eq('user_id', user.id)
-    .eq('book_id', decoded);
+    .eq('book_isbn', decoded);
 
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
