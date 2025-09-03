@@ -178,6 +178,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         {/* 좋아요/싫어요 영역 */}
         <div className="px-6 text-sm pt-4 flex pb-10 bottom-0.5 border-b-[0.4mm] border-[#DBDBDB]">
           <div className="inline-flex items-center px-5 py-1 bg-gray-100 rounded-full text-sm mr-2">
+            {/* 좋아요 */}
             <button
               onClick={() => toggle('like')}
               disabled={reacting}
@@ -186,7 +187,13 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               title="좋아요"
             >
               <ThumbsUp
-                className={`w-4 ${myReaction === 'like' ? 'opacity-100' : 'opacity-60'}`}
+                className={`w-4 transition
+      ${
+        myReaction === 'like'
+          ? 'text-black-600 [&_*]:fill-current'
+          : 'text-gray-600 opacity-60'
+      }          // 아웃라인
+    `}
               />
             </button>
             <span className="mx-2 h-4 w-px bg-gray-300" />
@@ -194,6 +201,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           </div>
 
           <div className="inline-flex items-center px-5 py-1 bg-gray-100 rounded-full text-sm">
+            {/* 싫어요 */}
             <button
               onClick={() => toggle('dislike')}
               disabled={reacting}
@@ -202,7 +210,13 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               title="싫어요"
             >
               <ThumbsDown
-                className={`w-4 ${myReaction === 'dislike' ? 'opacity-100' : 'opacity-60'}`}
+                className={`w-4 transition
+      ${
+        myReaction === 'dislike'
+          ? 'text-black-600 [&_*]:fill-current'
+          : 'text-gray-600 opacity-60'
+      }          // 아웃라인
+    `}
               />
             </button>
             <span className="mx-2 h-4 w-px bg-gray-300" />
