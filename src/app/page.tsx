@@ -50,9 +50,19 @@ export default function HomePage() {
       )
       .catch(() => setReviewRanking([]));
 
-    fetch('/api/book/mostlike')
+    fetch('/api/book/most-liked')
       .then((res) => res.json())
-      .then((data) => setLikeRanking(data))
+      .then(({ items }) =>
+        setLikeRanking(
+          items
+            .filter((it: any) => it.book)
+            .map((it: any) => ({
+              isbn: it.isbn,
+              title: it.book.title,
+              cover: it.book.cover,
+            })),
+        ),
+      )
       .catch(() => setLikeRanking([]));
   }, []);
 
