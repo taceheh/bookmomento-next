@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
         body,
       },
     });
+
     return NextResponse.json(created, { status: 201 });
   } catch (e: any) {
     console.error('insert error', e);
