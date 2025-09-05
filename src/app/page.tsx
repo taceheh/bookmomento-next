@@ -1,5 +1,6 @@
 'use client';
 
+import Slider from '@/components/Slider';
 import { SortTabBar } from '@/components/sortTabBar';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -77,13 +78,49 @@ export default function HomePage() {
     <>
       <SortTabBar />
       <main className="max-w-screen-md mx-auto px-4 py-6 space-y-8">
-        <div className="bg-black h-[400px]"></div>
+        {/* <div className="bg-black h-[400px]"></div> */}
+        <Slider />
         <nav className="justify-between flex">
-          <div className="w-20 h-20 border-black-100 border-1"></div>
-          <div className="w-20 h-20 border-black-100 border-1"></div>
-          <div className="w-20 h-20 border-black-100 border-1"></div>
-          <div className="w-20 h-20 border-black-100 border-1"></div>
-          <div className="w-20 h-20 border-black-100 border-1"></div>
+          <div>
+            <img
+              className="w-20 h-20 rounded-xl"
+              src="/image/bestseller-btn.png"
+              alt="버튼"
+            />
+            <div className="text-sm mt-2 text-center w-20">베스트셀러</div>
+          </div>
+          <div>
+            <img
+              className="w-20 h-20 rounded-xl"
+              src="/image/new-btn.png"
+              alt="버튼"
+            />
+            <div className="text-sm mt-2 text-center w-20">신간 추천</div>
+          </div>
+          <div>
+            <img
+              className="w-20 h-20 rounded-xl"
+              src="/image/comment-btn.png"
+              alt="버튼"
+            />
+            <div className="text-sm mt-2 text-center w-20">댓글</div>
+          </div>
+          <div>
+            <img
+              className="w-20 h-20 rounded-xl"
+              src="/image/like-btn.png"
+              alt="버튼"
+            />
+            <div className="text-sm mt-2 text-center w-20">좋아요</div>
+          </div>
+          <div>
+            <img
+              className="w-20 h-20 rounded-xl"
+              src="/image/discussion-btn.png"
+              alt="버튼"
+            />
+            <div className="text-sm mt-2 text-center w-20">토론</div>
+          </div>
         </nav>
         {searchResults.length > 0 && (
           <div className="grid grid-cols-2 gap-4">
