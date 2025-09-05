@@ -4,6 +4,10 @@ import { Footer } from '@/components/layout/footer';
 import { getUserServer } from '@/lib/auth/server';
 import AuthHydrator from '@/components/AuthHydrator';
 export const dynamic = 'force-dynamic';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+
 export default async function RootLayout({
   children,
 }: Readonly<{
