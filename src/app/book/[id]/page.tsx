@@ -4,6 +4,7 @@ import { Book } from '@/types/book';
 import axios from 'axios';
 import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { use, useEffect, useState } from 'react';
+import dayjs from 'dayjs';
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -233,7 +234,12 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         {comments.map((comment) => {
           return (
             <div key={comment.id}>
-              {comment.body} {comment.created_at}
+              <div>
+                {comment.body}{' '}
+                {dayjs(comment.created_at).format('YYYY-MM-DD HH:mm:ss')}
+              </div>
+
+              <button>댓글달기</button>
             </div>
           );
         })}
