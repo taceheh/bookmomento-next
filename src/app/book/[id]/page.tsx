@@ -266,7 +266,7 @@ type CommentItemType = {
   body: string;
   user_id: string;
   created_at: string; // ISO
-  replyCount?: number; // 확실하지 않음: 서버 응답에 없다면 생략
+  // replyCount?: number; // 확실하지 않음: 서버 응답에 없다면 생략
 };
 
 function CommentList({
