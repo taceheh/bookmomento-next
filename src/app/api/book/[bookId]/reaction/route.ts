@@ -20,12 +20,12 @@ export async function GET(
   const [likeRes, dislikeRes] = await Promise.all([
     supabase
       .from('book_reactions')
-      .select('*', { count: 'exact', head: true })
+      .select('*', { count: 'exact' })
       .eq('book_isbn', decoded)
       .eq('reaction', 'like'),
     supabase
       .from('book_reactions')
-      .select('*', { count: 'exact', head: true })
+      .select('*', { count: 'exact' })
       .eq('book_isbn', decoded)
       .eq('reaction', 'dislike'),
   ]);
