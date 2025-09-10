@@ -4,6 +4,7 @@ import { Book } from '@/types/book';
 import axios from 'axios';
 import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { use, useEffect, useState } from 'react';
+import dayjs from 'dayjs';
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -216,28 +217,219 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         <div className="px-6 py-10 text-sm">{book?.description}</div>
       </div>
 
+      {/* --- 댓글 섹션 (교체) --- */}
       <div className="bottom-0.5 border-t-[0.4mm] border-[#DBDBDB] py-10 px-6">
-        <div className="pb-10">리뷰 (64)</div>
-        <div>
-          <form onSubmit={onSubmit}>
-            <input
-              className="bottom-0.5 border-[0.4mm] border-[#DBDBDB] w-full h-20"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-            />
-            <button className="block w-full text-sm p-2 text-center border-1 mt-1">
-              리뷰 작성
-            </button>
-          </form>
-        </div>
-        {comments.map((comment) => {
-          return (
-            <div key={comment.id}>
-              {comment.body} {comment.created_at}
-            </div>
-          );
-        })}
+        <div className="pb-10">리뷰</div>
+
+        {/* 루트 댓글 작성 */}
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!text.trim()) return;
+            await axios.post('/api/comments', {
+              book_isbn: id,
+              parent_id: null,
+              body: text.trim(),
+            });
+            setText('');
+            // 루트 목록 갱신
+            const r = await fetch(
+              `/api/comments?book_isbn=${encodeURIComponent(id)}&parent_id=null`,
+            );
+            const d = await r.json();
+            setComments(d.items);
+          }}
+        >
+          <input
+            className="bottom-0.5 border-[0.4mm] border-[#DBDBDB] w-full h-20"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="리뷰를 입력하세요"
+          />
+          <button className="block w-full text-sm p-2 text-center border-1 mt-1">
+            리뷰 작성
+          </button>
+        </form>
+
+        {/* 댓글 리스트 */}
+        <CommentList bookIsbn={id} roots={comments} />
       </div>
+    </div>
+  );
+}
+// 댓글 타입(필요 시 백엔드 스키마에 맞게 확장)
+type CommentItemType = {
+  id: string;
+  parent_id: string | null;
+  root_id: string;
+  depth: number; // 0: 루트, 1: 대댓글
+  body: string;
+  user_id: string;
+  created_at: string; // ISO
+  // replyCount?: number; // 확실하지 않음: 서버 응답에 없다면 생략
+};
+
+function CommentList({
+  bookIsbn,
+  roots,
+}: {
+  bookIsbn: string;
+  roots: CommentItemType[];
+}) {
+  return (
+    <ul className="mt-6 space-y-6">
+      {roots.map((c) => (
+        <li key={c.id}>
+          <CommentItem bookIsbn={bookIsbn} comment={c} depth={0} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function CommentItem({
+  bookIsbn,
+  comment,
+  depth,
+}: {
+  bookIsbn: string;
+  comment: CommentItemType;
+  depth: number;
+}) {
+  const [openReplies, setOpenReplies] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [replies, setReplies] = useState<CommentItemType[] | null>(null);
+
+  const canReply = depth < 1; // 최대 2단(루트+대댓글)
+
+  const loadReplies = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      // 확실하지 않음: 같은 엔드포인트에서 parent_id만 바꿔 조회된다는 전제
+      const res = await fetch(
+        `/api/comments?book_isbn=${encodeURIComponent(
+          bookIsbn,
+        )}&parent_id=${encodeURIComponent(comment.id)}`,
+      );
+      const j = await res.json();
+      setReplies(j.items ?? []);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleReplies = async () => {
+    if (!openReplies) {
+      if (!replies) await loadReplies();
+      setOpenReplies(true);
+    } else {
+      setOpenReplies(false);
+    }
+  };
+
+  const submitReply = async () => {
+    if (!replyText.trim()) return;
+    await axios.post('/api/comments', {
+      book_isbn: bookIsbn,
+      parent_id: comment.id,
+      body: replyText.trim(),
+    });
+    setReplyText('');
+    setReplyOpen(false);
+    // 갱신
+    await loadReplies();
+    setOpenReplies(true);
+  };
+
+  return (
+    <div className="rounded-xl p-4 border">
+      <div className="text-xs text-gray-500">
+        {/* 확실하지 않음: 닉네임이 없다면 user_id 일부만 노출 */}
+        작성자: {comment.user_id?.slice(0, 8) ?? '익명'} ·{' '}
+        {dayjs(comment.created_at).format('YYYY-MM-DD HH:mm:ss')}
+      </div>
+      <div className="mt-2 whitespace-pre-wrap">{comment.body}</div>
+
+      <div className="mt-3 flex items-center gap-3 text-sm">
+        {canReply && (
+          <button
+            type="button"
+            onClick={() => setReplyOpen((v) => !v)}
+            aria-expanded={replyOpen}
+            className="underline underline-offset-2"
+          >
+            {replyOpen ? '답글 취소' : '답글 쓰기'}
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={toggleReplies}
+          aria-expanded={openReplies}
+          aria-controls={`replies-${comment.id}`}
+          className="underline underline-offset-2"
+        >
+          {openReplies ? '답글 접기' : '답글 보기'}
+        </button>
+      </div>
+
+      {replyOpen && canReply && (
+        <div className="mt-3">
+          <textarea
+            className="w-full rounded-lg border p-2"
+            rows={3}
+            placeholder="답글을 입력하세요"
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+          />
+          <div className="mt-2 flex gap-2">
+            <button
+              className="px-3 py-1 rounded-lg border"
+              onClick={() => setReplyOpen(false)}
+              type="button"
+            >
+              취소
+            </button>
+            <button
+              className="px-3 py-1 rounded-lg bg-black text-white"
+              onClick={submitReply}
+              type="button"
+            >
+              등록
+            </button>
+          </div>
+        </div>
+      )}
+
+      {openReplies && (
+        <div id={`replies-${comment.id}`} className="mt-3 pl-4 border-l">
+          {loading && (
+            <div className="text-sm text-gray-500">답글 불러오는 중...</div>
+          )}
+          {!loading && replies && replies.length === 0 && (
+            <div className="text-sm text-gray-500">아직 답글이 없습니다</div>
+          )}
+          {!loading && replies && replies.length > 0 && (
+            <ul className="space-y-3">
+              {replies.map((r) => (
+                <li key={r.id}>
+                  {/* 깊이 1 → 더 이상 답글 쓰기 버튼은 노출하지 않음 */}
+                  <div className="rounded-xl p-3 border bg-gray-50">
+                    <div className="text-xs text-gray-500">
+                      작성자: {r.user_id?.slice(0, 8) ?? '익명'} ·{' '}
+                      {dayjs(r.created_at).format('YYYY-MM-DD HH:mm:ss')}
+                    </div>
+                    <div className="mt-1 whitespace-pre-wrap">{r.body}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }
