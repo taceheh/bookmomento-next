@@ -91,7 +91,7 @@ export async function GET(
 ) {
   try {
     const { searchParams } = new URL(req.url);
-    const parentIdParam = searchParams.get('parent_id'); // "null" | uuid | null
+    const parentIdParam = searchParams.get('parent_id');
 
     const isbn = await params;
     const book_isbn = isbn.bookId;
@@ -99,7 +99,7 @@ export async function GET(
     const isRootQuery = parentIdParam === null || parentIdParam === 'null';
     const where = {
       book_isbn,
-      deleted_at: null as Date | null, // soft delete 컬럼 있을 경우
+      deleted_at: null as Date | null,
       parent_id: isRootQuery ? null : parentIdParam!,
     };
 
@@ -108,7 +108,18 @@ export async function GET(
       orderBy: { created_at: 'desc' },
     });
 
-    return NextResponse.json({ items: comments });
+    const totalCount = await prisma.comments.count({
+      where: {
+        book_isbn,
+        deleted_at: null,
+      },
+    });
+
+    return NextResponse.json({
+      items: comments,
+      count: comments.length, // 현재 쿼리된 개수 (루트만)
+      totalCount, // 전체 댓글 수 (루트+대댓글)
+    });
   } catch (e: any) {
     console.error('comments GET error', e);
     return NextResponse.json({ error: e.message }, { status: 400 });

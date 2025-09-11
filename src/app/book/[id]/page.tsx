@@ -11,6 +11,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
   const [book, setBook] = useState<Book | null>(null);
   const [text, setText] = useState('');
+  const [count, setCount] = useState(0);
   const [comments, setComments] = useState<CommentItemType[]>([]);
   type Reaction = 'like' | 'dislike';
 
@@ -40,6 +41,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     const fetchBook = async () => {
       try {
         const res = await fetch(`/api/book/bookdetail?isbn=${id}`);
+
         if (!res.ok) {
           const error = await res.json();
           throw new Error(error.error);
@@ -57,6 +59,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         `/api/book/${encodeURIComponent(id)}/comments?parent_id=null`,
       );
       const data = await res.json();
+      console.log(data);
+      setCount(data.totalCount);
       setComments(data.items);
     };
 
@@ -81,6 +85,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     );
     const d = await r.json();
     setComments(d.items);
+    setCount(d.totalCount);
   }
 
   // 좋아요/싫어요 토글
@@ -201,7 +206,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
       {/* 댓글 섹션 */}
       <div className="border-t border-[#DBDBDB] py-10 px-6">
-        <div className="pb-10">리뷰</div>
+        <div className="pb-10">리뷰 ({count}) </div>
         <form onSubmit={onSubmit}>
           <input
             className="border border-[#DBDBDB] w-full h-20"
