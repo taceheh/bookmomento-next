@@ -12,8 +12,44 @@ export default async function Page() {
 
   return (
     <div>
-      <div>마이페이지 내용이 여기에 들어갑니다.</div>
-      <KakaoLogoutButton />
+      <div>
+        <div
+          className="border-b-2 font-semibold border-black flex h-14
+         items-center"
+        >
+          나의 책담 정보
+        </div>
+        <div
+          className="border-b border-[#DBDBDB] flex h-12
+         items-center text-sm"
+        >
+          내가 작성한 댓글
+        </div>
+        <div
+          className="border-b border-[#DBDBDB] flex h-12
+         items-center text-sm"
+        >
+          내가 좋아요한 책
+        </div>
+      </div>
+      <div>
+        <div
+          className="border-b-2 font-semibold  border-black flex h-14
+         items-center mt-4"
+        >
+          나의 계정 정보
+        </div>
+        <div
+          className="border-b border-[#DBDBDB] flex h-12
+         items-center text-sm"
+        >
+          회원정보 수정
+        </div>
+        <KakaoLogoutButton />
+        <div className="font-light text-xs flex justify-center m-4">
+          회원탈퇴
+        </div>
+      </div>
     </div>
   );
 }

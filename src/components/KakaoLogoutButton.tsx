@@ -15,7 +15,12 @@ export function KakaoLogoutButton() {
 
   return (
     <form action={signOut}>
-      <button type="submit">로그아웃</button>
+      <button
+        type="submit"
+        className="bg-black text-white text-sm flex justify-center w-[90%] m-auto mt-2 p-3"
+      >
+        로그아웃
+      </button>
     </form>
   );
 }
