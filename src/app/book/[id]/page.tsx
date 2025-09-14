@@ -47,7 +47,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           throw new Error(error.error);
         }
         const data = await res.json();
-        setBook(data[0]);
+        console.log(data);
+        setBook(data);
       } catch (err: any) {
         console.error('에러:', err.message);
       }
@@ -59,7 +60,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         `/api/book/${encodeURIComponent(id)}/comments?parent_id=null`,
       );
       const data = await res.json();
-      console.log(data);
       setCount(data.totalCount);
       setComments(data.items);
     };
@@ -183,7 +183,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                 : 'text-gray-600 opacity-60'
             }`}
           />
-          <span className="ml-2">{likes}</span>
+          &nbsp; |<span className="ml-2">{likes}</span>
         </button>
 
         <button
@@ -197,8 +197,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                 ? 'text-black-600 [&_*]:fill-current'
                 : 'text-gray-600 opacity-60'
             }`}
-          />
-          <span className="ml-2">{dislikes}</span>
+          />{' '}
+          &nbsp; |<span className="ml-2">{dislikes}</span>
         </button>
       </div>
 
