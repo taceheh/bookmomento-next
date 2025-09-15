@@ -25,19 +25,27 @@ export async function GET(
       // ✅ 내가 좋아요한 책
       const likes = await prisma.book_reactions.findMany({
         where: { user_id: userId, reaction: 'like' },
-        include: { book: true },
         orderBy: { created_at: 'desc' },
       });
 
-      return NextResponse.json(
-        likes.map((l) => ({
-          id: l.book_isbn,
-          title: l.book?.title,
-          author: l.book?.author,
-          cover: l.book?.cover,
-          likedAt: l.created_at,
-        })),
+      // 책 정보를 별도로 조회
+      const booksData = await Promise.all(
+        likes.map(async (like) => {
+          const book = await prisma.books.findUnique({
+            where: { isbn13: like.book_isbn },
+          });
+
+          return {
+            id: like.book_isbn,
+            title: book?.title || 'Unknown Title',
+            author: book?.author || 'Unknown Author',
+            cover: book?.cover || '',
+            likedAt: like.created_at,
+          };
+        }),
       );
+
+      return NextResponse.json(booksData);
     }
 
     if (type === 'comments') {
