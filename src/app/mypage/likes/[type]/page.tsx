@@ -6,9 +6,10 @@ import { use } from 'react';
 export default function Page({
   params,
 }: {
-  params: { type: 'posts' | 'comments' };
+  params: Promise<{ type: 'posts' | 'comments' }>;
 }) {
-  const { type } = params;
+  // params를 use() 훅으로 unwrap
+  const { type } = use(params);
 
   if (type !== 'posts' && type !== 'comments') {
     return <div>잘못된 접근입니다.</div>;
