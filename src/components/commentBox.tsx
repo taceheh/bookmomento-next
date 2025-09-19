@@ -11,7 +11,7 @@ export default function CommentBox({
 }: {
   userId: string | null;
   next: string; // 로그인 후 돌아올 경로
-  bookIsbn: string; // 댓글 작성 시 보낼 식별자
+  bookIsbn: string; // 댓글 작성 시 보낼 식별자 (isbn)
 }) {
   const router = useRouter();
   const [body, setBody] = useState('');
@@ -20,18 +20,23 @@ export default function CommentBox({
     e.preventDefault();
 
     if (!userId) {
-      // 미로그인 → 로그인 페이지로 유도하면서 next로 원래 페이지 복귀
+      // 미로그인 → 로그인 페이지로 이동 (로그인 후 next로 복귀)
       router.push(`/signin?next=${encodeURIComponent(next)}`);
       return;
     }
 
-    // 여기서 실제 댓글 작성 API 호출
-    // TODO: 서버 라우트 /api/comments 로 POST
-    const res = await fetch('/api/comments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ book_isbn: bookIsbn, body, parent_id: null }),
-    });
+    // 댓글 작성 API 호출 (책 기준 라우트로 변경)
+    const res = await fetch(
+      `/api/book/${encodeURIComponent(bookIsbn)}/comments`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          body,
+          parent_id: null, // 최상위 댓글
+        }),
+      },
+    );
 
     if (!res.ok) {
       console.error('댓글 작성 실패');
@@ -39,7 +44,7 @@ export default function CommentBox({
     }
 
     setBody('');
-    // 필요시 새로고침 또는 목록 갱신
+    // 목록을 새로고침하여 댓글 반영
     router.refresh();
   };
 
