@@ -1,35 +1,101 @@
 'use client';
 
+import { useAuthStore } from '@/stores/authStore';
 import useSWR from 'swr';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+  console.log('🚀 Fetching:', url);
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  }
+
+  const data = await response.json();
+  // console.log('📦 Data:', data);
+  return data;
+};
 
 export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
-  const endpoint = `/api/likes/${type}`;
-  const { data, error, isLoading } = useSWR(endpoint, fetcher);
+  // ✅ 스토어에서 직접 사용자 정보 가져오기
+  const { user, loading: authLoading } = useAuthStore();
 
-  // 디버깅을 위한 콘솔 로그
-  console.log('API Response:', { data, error, isLoading });
+  // API 엔드포인트 - 사용자 ID를 URL에 포함
+  const endpoint = user?.id ? `/api/likes/${type}?userId=${user.id}` : null;
 
-  if (isLoading) return <div>불러오는 중...</div>;
-  if (error)
-    return <div>에러가 발생했습니다: {error.message || '알 수 없는 오류'}</div>;
+  const { data, error, isLoading, mutate } = useSWR(endpoint, fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+  });
 
-  // data가 배열이 아닌 경우 처리
-  if (!data) {
-    return <div>데이터를 불러올 수 없습니다.</div>;
+  //   console.log('🎯 Component state:', {
+  //     authLoading,
+  //     hasUser: !!user,
+  //     userId: user?.id,
+  //     endpoint,
+  //     isLoading,
+  //   }
+  // );
+
+  // 인증 로딩 중
+  if (authLoading) {
+    return <div>인증 확인 중...</div>;
   }
 
-  // data가 에러 객체인 경우
-  if (data.error) {
-    return <div>API 오류: {data.error}</div>;
+  // 로그인 안 됨
+  if (!user?.id) {
+    return <div>로그인이 필요합니다.</div>;
   }
 
-  // data가 배열이 아닌 경우
+  // API 로딩 중
+  if (isLoading) {
+    return (
+      <div>
+        <div>불러오는 중...</div>
+      </div>
+    );
+  }
+
+  // 에러 발생
+  if (error) {
+    return (
+      <div>
+        <div className="text-red-500">에러가 발생했습니다:</div>
+        <div className="text-sm text-red-400">{error.message}</div>
+        <button
+          onClick={() => mutate()}
+          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded text-sm"
+        >
+          다시 시도
+        </button>
+      </div>
+    );
+  }
+
+  // 데이터 없음
+  if (!data || data.error) {
+    return (
+      <div>
+        <div>데이터를 불러올 수 없습니다.</div>
+        {data?.error && (
+          <div className="text-sm text-red-400">{data.error}</div>
+        )}
+        <button onClick={() => mutate()}>새로고침</button>
+      </div>
+    );
+  }
+
+  // 잘못된 데이터 형식
   if (!Array.isArray(data)) {
-    return <div>잘못된 데이터 형식입니다. (받은 데이터: {typeof data})</div>;
+    return (
+      <div>
+        <div>잘못된 데이터 형식입니다.</div>
+        <button onClick={() => mutate()}>새로고침</button>
+      </div>
+    );
   }
 
+  // 빈 데이터
   if (data.length === 0) {
     return (
       <div>
@@ -40,25 +106,48 @@ export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
     );
   }
 
+  // 데이터 표시
   return (
-    <ul className="space-y-4">
-      {data.map((item: any) => (
-        <li key={item.id} className="border p-4 rounded">
-          {type === 'posts' ? (
-            <div>
-              <div className="font-bold">{item.title}</div>
-              <div className="text-sm text-gray-600">{item.author}</div>
-            </div>
-          ) : (
-            <div>
-              <div className="text-sm">{item.body}</div>
-              <div className="text-xs text-gray-500">
-                작성일: {new Date(item.createdAt).toLocaleString()}
+    <div>
+      <div className="mb-4 flex justify-between items-center">
+        <span className="text-sm text-gray-500">총 {data.length}개</span>
+        <button
+          onClick={() => mutate()}
+          className="px-3 py-1 bg-gray-200 text-sm rounded hover:bg-gray-300"
+        >
+          새로고침
+        </button>
+      </div>
+
+      <ul className="space-y-4">
+        {data.map((item: any) => (
+          <li key={item.id} className="border p-4 rounded-lg">
+            {type === 'posts' ? (
+              <div>
+                <div className="font-bold text-lg mb-1">{item.title}</div>
+                <div className="text-sm text-gray-600 mb-2">{item.author}</div>
+                {item.cover && (
+                  <img
+                    src={item.cover}
+                    alt={item.title}
+                    className="w-16 h-24 object-cover"
+                  />
+                )}
+                <div className="text-xs text-gray-400 mt-2">
+                  좋아요한 날짜: {new Date(item.likedAt).toLocaleDateString()}
+                </div>
               </div>
-            </div>
-          )}
-        </li>
-      ))}
-    </ul>
+            ) : (
+              <div>
+                <div className="mb-2">{item.body}</div>
+                <div className="text-xs text-gray-500">
+                  작성일: {new Date(item.createdAt).toLocaleString()}
+                </div>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

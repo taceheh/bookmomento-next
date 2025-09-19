@@ -8,7 +8,6 @@ export default function Page({
 }: {
   params: Promise<{ type: 'posts' | 'comments' }>;
 }) {
-  // params를 use() 훅으로 unwrap
   const { type } = use(params);
 
   if (type !== 'posts' && type !== 'comments') {

@@ -1,6 +1,7 @@
 import { KakaoLogoutButton } from '@/components/KakaoLogoutButton';
 import { getUserServer, requireUserServer } from '@/lib/auth/server';
 import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
@@ -19,18 +20,22 @@ export default async function Page() {
         >
           나의 책담 정보
         </div>
-        <div
-          className="border-b border-[#DBDBDB] flex h-12
+        <Link href="/mypage/likes/comments">
+          <div
+            className="border-b border-[#DBDBDB] flex h-12
+          items-center text-sm"
+          >
+            내가 작성한 댓글
+          </div>
+        </Link>
+        <Link href="/mypage/likes/posts">
+          <div
+            className="border-b border-[#DBDBDB] flex h-12
          items-center text-sm"
-        >
-          내가 작성한 댓글
-        </div>
-        <div
-          className="border-b border-[#DBDBDB] flex h-12
-         items-center text-sm"
-        >
-          내가 좋아요한 책
-        </div>
+          >
+            내가 좋아요한 책
+          </div>
+        </Link>
       </div>
       <div>
         <div

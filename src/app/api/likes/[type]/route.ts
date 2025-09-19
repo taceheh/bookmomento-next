@@ -1,32 +1,35 @@
-// app/api/mypage/[type]/route.ts
+// app/api/likes/[type]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { type: 'posts' | 'comments' } },
+  { params }: { params: Promise<{ type: 'posts' | 'comments' }> },
 ) {
   try {
-    const { type } = params;
-    const supabase = createRouteHandlerClient({ cookies });
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { type } = await params;
 
-    if (!user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // URL에서 userId 파라미터 가져오기
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('userId');
+
+    // console.log('API called:', { type, userId });
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 400 },
+      );
     }
 
-    const userId = user.id;
-
     if (type === 'posts') {
-      // ✅ 내가 좋아요한 책
+      // 내가 좋아요한 책
       const likes = await prisma.book_reactions.findMany({
         where: { user_id: userId, reaction: 'like' },
         orderBy: { created_at: 'desc' },
       });
+
+      // console.log('Found likes:', likes.length);
 
       // 책 정보를 별도로 조회
       const booksData = await Promise.all(
@@ -49,11 +52,13 @@ export async function GET(
     }
 
     if (type === 'comments') {
-      // ✅ 내가 쓴 댓글
+      // 내가 쓴 댓글
       const comments = await prisma.comments.findMany({
         where: { user_id: userId },
         orderBy: { created_at: 'desc' },
       });
+
+      // console.log('Found comments:', comments.length);
 
       return NextResponse.json(
         comments.map((c) => ({
@@ -70,7 +75,7 @@ export async function GET(
       { status: 400 },
     );
   } catch (e: any) {
-    console.error('mypage API error', e);
+    console.error('likes API error', e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
