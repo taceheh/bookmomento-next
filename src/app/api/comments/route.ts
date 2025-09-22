@@ -101,3 +101,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: e.message }, { status: 400 });
   }
 }
+
+// 댓글 삭제
+export async function DELETE(req: NextRequest) {}
+
+// 댓글 수정
+export async function PATCH(req: NextRequest) {}

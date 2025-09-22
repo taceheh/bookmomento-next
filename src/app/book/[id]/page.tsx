@@ -2,7 +2,7 @@
 
 import { Book } from '@/types/book';
 import axios from 'axios';
-import { ThumbsDown, ThumbsUp } from 'lucide-react';
+import { ThumbsDown, ThumbsUp, Edit, Trash2 } from 'lucide-react';
 import { use, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 
@@ -137,6 +137,16 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     setReacting(false);
   }
 
+  // 댓글 목록 새로고침
+  const refreshComments = async () => {
+    const res = await fetch(
+      `/api/book/${encodeURIComponent(id)}/comments?parent_id=null`,
+    );
+    const data = await res.json();
+    setComments(data.items);
+    setCount(data.totalCount);
+  };
+
   if (!book) return <div>로딩 중...</div>;
 
   return (
@@ -218,7 +228,11 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             리뷰 작성
           </button>
         </form>
-        <CommentList bookIsbn={id} roots={comments} />
+        <CommentList
+          bookIsbn={id}
+          roots={comments}
+          onCommentChange={refreshComments}
+        />
       </div>
     </div>
   );
@@ -237,15 +251,22 @@ type CommentItemType = {
 function CommentList({
   bookIsbn,
   roots,
+  onCommentChange,
 }: {
   bookIsbn: string;
   roots: CommentItemType[];
+  onCommentChange: () => void;
 }) {
   return (
     <ul className="mt-6 space-y-6">
       {roots.map((c) => (
         <li key={c.id}>
-          <CommentItem bookIsbn={bookIsbn} comment={c} depth={0} />
+          <CommentItem
+            bookIsbn={bookIsbn}
+            comment={c}
+            depth={0}
+            onCommentChange={onCommentChange}
+          />
         </li>
       ))}
     </ul>
@@ -257,16 +278,24 @@ function CommentItem({
   bookIsbn,
   comment,
   depth,
+  onCommentChange,
 }: {
   bookIsbn: string;
   comment: CommentItemType;
   depth: number;
+  onCommentChange: () => void;
 }) {
   const [openReplies, setOpenReplies] = useState(false);
   const [loading, setLoading] = useState(false);
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [replies, setReplies] = useState<CommentItemType[] | null>(null);
+
+  // 수정 관련 상태
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(comment.body);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const canReply = depth < 1;
 
@@ -298,6 +327,65 @@ function CommentItem({
     setReplyText('');
     await loadReplies();
     setOpenReplies(true);
+    setReplyOpen(false);
+  };
+
+  // 댓글 수정
+  const handleEdit = async () => {
+    if (!editText.trim() || isUpdating) return;
+
+    setIsUpdating(true);
+    try {
+      await axios.put(
+        `/api/book/${encodeURIComponent(bookIsbn)}/comments/${comment.id}`,
+        {
+          body: editText.trim(),
+        },
+      );
+
+      setIsEditing(false);
+      // 부모 댓글이면 전체 목록 새로고침, 답글이면 답글 목록만 새로고침
+      if (comment.parent_id === null) {
+        onCommentChange();
+      } else {
+        await loadReplies();
+      }
+    } catch (error) {
+      console.error('댓글 수정 실패:', error);
+      alert('댓글 수정에 실패했습니다.');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // 댓글 삭제
+  const handleDelete = async () => {
+    if (isDeleting) return;
+
+    if (!confirm('정말로 이 댓글을 삭제하시겠습니까?')) return;
+
+    setIsDeleting(true);
+    try {
+      await axios.delete(
+        `/api/book/${encodeURIComponent(bookIsbn)}/comments/${comment.id}`,
+      );
+
+      // 부모 댓글이면 전체 목록 새로고침, 답글이면 답글 목록만 새로고침
+      if (comment.parent_id === null) {
+        onCommentChange();
+      } else {
+        await loadReplies();
+      }
+    } catch (error) {
+      console.error('댓글 삭제 실패:', error);
+      alert('댓글 삭제에 실패했습니다.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleRefreshReplies = () => {
+    loadReplies();
   };
 
   return (
@@ -306,21 +394,74 @@ function CommentItem({
         작성자: {comment.user_id?.slice(0, 8) ?? '익명'} ·{' '}
         {dayjs(comment.created_at).format('YYYY-MM-DD HH:mm:ss')}
       </div>
-      <div className="mt-2 whitespace-pre-wrap">{comment.body}</div>
+
+      {isEditing ? (
+        <div className="mt-2">
+          <textarea
+            className="w-full rounded-lg border p-2 text-sm"
+            rows={3}
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+          />
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={handleEdit}
+              disabled={isUpdating}
+              className="px-3 py-1 bg-blue-500 text-white text-sm rounded disabled:opacity-50"
+            >
+              {isUpdating ? '수정 중...' : '수정 완료'}
+            </button>
+            <button
+              onClick={() => {
+                setIsEditing(false);
+                setEditText(comment.body);
+              }}
+              className="px-3 py-1 bg-gray-500 text-white text-sm rounded"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-2 whitespace-pre-wrap">{comment.body}</div>
+      )}
 
       <div className="mt-3 flex items-center gap-3 text-sm">
         {canReply && (
           <button
             type="button"
             onClick={() => setReplyOpen((v) => !v)}
-            className="underline"
+            className="underline hover:text-blue-600"
           >
             {replyOpen ? '답글 취소' : '답글 쓰기'}
           </button>
         )}
-        <button type="button" onClick={toggleReplies} className="underline">
+        <button
+          type="button"
+          onClick={toggleReplies}
+          className="underline hover:text-blue-600"
+        >
           {openReplies ? '답글 접기' : '답글 보기'}
         </button>
+
+        {/* 수정/삭제 버튼 */}
+        <div className="flex gap-2 ml-auto">
+          <button
+            onClick={() => setIsEditing(true)}
+            className="flex items-center gap-1 text-gray-500 hover:text-blue-600 text-xs"
+          >
+            <Edit className="w-3 h-3" />
+            수정
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="flex items-center gap-1 text-gray-500 hover:text-red-600 text-xs disabled:opacity-50"
+          >
+            <Trash2 className="w-3 h-3" />
+            {isDeleting ? '삭제 중...' : '삭제'}
+          </button>
+        </div>
       </div>
 
       {replyOpen && canReply && (
@@ -332,12 +473,23 @@ function CommentItem({
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
           />
-          <button
-            onClick={submitReply}
-            className="mt-2 px-3 py-1 bg-black text-white"
-          >
-            등록
-          </button>
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={submitReply}
+              className="px-3 py-1 bg-black text-white text-sm rounded"
+            >
+              등록
+            </button>
+            <button
+              onClick={() => {
+                setReplyOpen(false);
+                setReplyText('');
+              }}
+              className="px-3 py-1 bg-gray-500 text-white text-sm rounded"
+            >
+              취소
+            </button>
+          </div>
         </div>
       )}
 
@@ -348,14 +500,132 @@ function CommentItem({
           {!loading &&
             replies &&
             replies.map((r) => (
-              <div key={r.id} className="rounded-xl p-3 border bg-gray-50 mt-2">
-                <div className="text-xs text-gray-500">
-                  작성자: {r.user_id?.slice(0, 8) ?? '익명'} ·{' '}
-                  {dayjs(r.created_at).format('YYYY-MM-DD HH:mm:ss')}
-                </div>
-                <div className="mt-1 whitespace-pre-wrap">{r.body}</div>
-              </div>
+              <ReplyItem
+                key={r.id}
+                bookIsbn={bookIsbn}
+                reply={r}
+                onReplyChange={handleRefreshReplies}
+              />
             ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 답글 아이템 컴포넌트
+function ReplyItem({
+  bookIsbn,
+  reply,
+  onReplyChange,
+}: {
+  bookIsbn: string;
+  reply: CommentItemType;
+  onReplyChange: () => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(reply.body);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // 답글 수정
+  const handleEdit = async () => {
+    if (!editText.trim() || isUpdating) return;
+
+    setIsUpdating(true);
+    try {
+      await axios.put(
+        `/api/book/${encodeURIComponent(bookIsbn)}/comments/${reply.id}`,
+        {
+          body: editText.trim(),
+        },
+      );
+
+      setIsEditing(false);
+      onReplyChange();
+    } catch (error) {
+      console.error('답글 수정 실패:', error);
+      alert('답글 수정에 실패했습니다.');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // 답글 삭제
+  const handleDelete = async () => {
+    if (isDeleting) return;
+
+    if (!confirm('정말로 이 답글을 삭제하시겠습니까?')) return;
+
+    setIsDeleting(true);
+    try {
+      await axios.delete(
+        `/api/book/${encodeURIComponent(bookIsbn)}/comments/${reply.id}`,
+      );
+      onReplyChange();
+    } catch (error) {
+      console.error('답글 삭제 실패:', error);
+      alert('답글 삭제에 실패했습니다.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl p-3 border bg-gray-50 mt-2">
+      <div className="text-xs text-gray-500">
+        작성자: {reply.user_id?.slice(0, 8) ?? '익명'} ·{' '}
+        {dayjs(reply.created_at).format('YYYY-MM-DD HH:mm:ss')}
+      </div>
+
+      {isEditing ? (
+        <div className="mt-2">
+          <textarea
+            className="w-full rounded-lg border p-2 text-sm bg-white"
+            rows={3}
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+          />
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={handleEdit}
+              disabled={isUpdating}
+              className="px-3 py-1 bg-blue-500 text-white text-sm rounded disabled:opacity-50"
+            >
+              {isUpdating ? '수정 중...' : '수정 완료'}
+            </button>
+            <button
+              onClick={() => {
+                setIsEditing(false);
+                setEditText(reply.body);
+              }}
+              className="px-3 py-1 bg-gray-500 text-white text-sm rounded"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-1 whitespace-pre-wrap">{reply.body}</div>
+      )}
+
+      {!isEditing && (
+        <div className="mt-2 flex gap-2 justify-end">
+          <button
+            onClick={() => setIsEditing(true)}
+            className="flex items-center gap-1 text-gray-500 hover:text-blue-600 text-xs"
+          >
+            <Edit className="w-3 h-3" />
+            수정
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="flex items-center gap-1 text-gray-500 hover:text-red-600 text-xs disabled:opacity-50"
+          >
+            <Trash2 className="w-3 h-3" />
+            {isDeleting ? '삭제 중...' : '삭제'}
+          </button>
         </div>
       )}
     </div>
