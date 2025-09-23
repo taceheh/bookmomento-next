@@ -238,13 +238,14 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   );
 }
 
-// 댓글 타입
+// 댓글 타입 - deleted_at 필드 추가
 type CommentItemType = {
   id: string;
   parent_id: string | null;
   body: string;
   user_id: string;
   created_at: string;
+  deleted_at: string | null;
 };
 
 // 댓글 리스트
@@ -336,8 +337,8 @@ function CommentItem({
 
     setIsUpdating(true);
     try {
-      await axios.put(
-        `/api/book/${encodeURIComponent(bookIsbn)}/comments/${comment.id}`,
+      await axios.patch(
+        `/api/book/${encodeURIComponent(bookIsbn)}/comments?book_isbn=${encodeURIComponent(bookIsbn)}&comment_id=${comment.id}`,
         {
           body: editText.trim(),
         },
@@ -358,7 +359,7 @@ function CommentItem({
     }
   };
 
-  // 댓글 삭제
+  // 댓글 삭제 - query parameter 방식으로 수정
   const handleDelete = async () => {
     if (isDeleting) return;
 
@@ -367,7 +368,7 @@ function CommentItem({
     setIsDeleting(true);
     try {
       await axios.delete(
-        `/api/book/${encodeURIComponent(bookIsbn)}/comments/${comment.id}`,
+        `/api/book/${encodeURIComponent(bookIsbn)}/comments?book_isbn=${encodeURIComponent(bookIsbn)}&comment_id=${comment.id}`,
       );
 
       // 부모 댓글이면 전체 목록 새로고침, 답글이면 답글 목록만 새로고침
@@ -423,11 +424,17 @@ function CommentItem({
           </div>
         </div>
       ) : (
-        <div className="mt-2 whitespace-pre-wrap">{comment.body}</div>
+        <div className="mt-2 whitespace-pre-wrap">
+          {comment.deleted_at ? (
+            <span className="text-gray-400 italic">삭제된 댓글입니다</span>
+          ) : (
+            comment.body
+          )}
+        </div>
       )}
 
       <div className="mt-3 flex items-center gap-3 text-sm">
-        {canReply && (
+        {canReply && !comment.deleted_at && (
           <button
             type="button"
             onClick={() => setReplyOpen((v) => !v)}
@@ -444,24 +451,26 @@ function CommentItem({
           {openReplies ? '답글 접기' : '답글 보기'}
         </button>
 
-        {/* 수정/삭제 버튼 */}
-        <div className="flex gap-2 ml-auto">
-          <button
-            onClick={() => setIsEditing(true)}
-            className="flex items-center gap-1 text-gray-500 hover:text-blue-600 text-xs"
-          >
-            <Edit className="w-3 h-3" />
-            수정
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className="flex items-center gap-1 text-gray-500 hover:text-red-600 text-xs disabled:opacity-50"
-          >
-            <Trash2 className="w-3 h-3" />
-            {isDeleting ? '삭제 중...' : '삭제'}
-          </button>
-        </div>
+        {/* 수정/삭제 버튼 - 삭제되지 않은 댓글만 */}
+        {!comment.deleted_at && (
+          <div className="flex gap-2 ml-auto">
+            <button
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-1 text-gray-500 hover:text-blue-600 text-xs"
+            >
+              <Edit className="w-3 h-3" />
+              수정
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="flex items-center gap-1 text-gray-500 hover:text-red-600 text-xs disabled:opacity-50"
+            >
+              <Trash2 className="w-3 h-3" />
+              {isDeleting ? '삭제 중...' : '삭제'}
+            </button>
+          </div>
+        )}
       </div>
 
       {replyOpen && canReply && (
@@ -513,7 +522,7 @@ function CommentItem({
   );
 }
 
-// 답글 아이템 컴포넌트
+// 답글 아이템 컴포넌트 - API 호출 방식 통일
 function ReplyItem({
   bookIsbn,
   reply,
@@ -528,14 +537,14 @@ function ReplyItem({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // 답글 수정
+  // 답글 수정 - PATCH + query parameter로 통일
   const handleEdit = async () => {
     if (!editText.trim() || isUpdating) return;
 
     setIsUpdating(true);
     try {
-      await axios.put(
-        `/api/book/${encodeURIComponent(bookIsbn)}/comments/${reply.id}`,
+      await axios.patch(
+        `/api/book/${encodeURIComponent(bookIsbn)}/comments?book_isbn=${encodeURIComponent(bookIsbn)}&comment_id=${reply.id}`,
         {
           body: editText.trim(),
         },
@@ -551,7 +560,7 @@ function ReplyItem({
     }
   };
 
-  // 답글 삭제
+  // 답글 삭제 - DELETE + query parameter로 통일
   const handleDelete = async () => {
     if (isDeleting) return;
 
@@ -560,7 +569,7 @@ function ReplyItem({
     setIsDeleting(true);
     try {
       await axios.delete(
-        `/api/book/${encodeURIComponent(bookIsbn)}/comments/${reply.id}`,
+        `/api/book/${encodeURIComponent(bookIsbn)}/comments?book_isbn=${encodeURIComponent(bookIsbn)}&comment_id=${reply.id}`,
       );
       onReplyChange();
     } catch (error) {
@@ -606,10 +615,16 @@ function ReplyItem({
           </div>
         </div>
       ) : (
-        <div className="mt-1 whitespace-pre-wrap">{reply.body}</div>
+        <div className="mt-1 whitespace-pre-wrap">
+          {reply.deleted_at ? (
+            <span className="text-gray-400 italic">삭제된 댓글입니다</span>
+          ) : (
+            reply.body
+          )}
+        </div>
       )}
 
-      {!isEditing && (
+      {!isEditing && !reply.deleted_at && (
         <div className="mt-2 flex gap-2 justify-end">
           <button
             onClick={() => setIsEditing(true)}
