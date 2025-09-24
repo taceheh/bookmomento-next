@@ -125,3 +125,154 @@ export async function GET(
     return NextResponse.json({ error: e.message }, { status: 400 });
   }
 }
+
+// 댓글 삭제 (Soft Delete)
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { bookId: string } },
+) {
+  console.log('DELETE request received for bookId:', params.bookId);
+
+  const supabase = await supabaseServer();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!user)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const commentId = searchParams.get('comment_id');
+    const book_isbn = searchParams.get('book_isbn') || params.bookId;
+
+    console.log('DELETE - commentId:', commentId, 'book_isbn:', book_isbn);
+
+    if (!commentId) {
+      return NextResponse.json(
+        { error: 'comment_id is required' },
+        { status: 400 },
+      );
+    }
+
+    // 댓글 존재 여부 및 권한 확인
+    const existingComment = await prisma.comments.findUnique({
+      where: { id: commentId },
+      select: { id: true, user_id: true, deleted_at: true },
+    });
+
+    if (!existingComment) {
+      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+    }
+
+    if (existingComment.deleted_at) {
+      return NextResponse.json(
+        { error: 'Comment already deleted' },
+        { status: 400 },
+      );
+    }
+
+    if (existingComment.user_id !== user.id) {
+      return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+    }
+
+    // Soft Delete: deleted_at 필드만 업데이트
+    await prisma.comments.update({
+      where: { id: commentId },
+      data: {
+        deleted_at: new Date(),
+        updated_at: new Date(),
+      },
+    });
+
+    console.log('DELETE success:', commentId);
+    return NextResponse.json(
+      { message: 'Comment deleted successfully' },
+      { status: 200 },
+    );
+  } catch (e: any) {
+    console.error('comments DELETE error', e);
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
+
+// 댓글 수정 (PATCH)
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { bookId: string } },
+) {
+  // console.log('PATCH request received for bookId:', params.bookId);
+
+  const supabase = await supabaseServer();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!user)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const commentId = searchParams.get('comment_id');
+
+    const isbn = await params;
+    const book_isbn = searchParams.get('book_isbn') || isbn.bookId;
+
+    console.log('PATCH - commentId:', commentId, 'book_isbn:', book_isbn);
+
+    if (!commentId) {
+      return NextResponse.json(
+        { error: 'comment_id is required' },
+        { status: 400 },
+      );
+    }
+
+    const { body } = await req.json();
+
+    if (!body || !body.trim()) {
+      return NextResponse.json({ error: 'Body is required' }, { status: 400 });
+    }
+
+    // 댓글 존재 여부 및 권한 확인
+    const existingComment = await prisma.comments.findUnique({
+      where: { id: commentId },
+      select: { id: true, user_id: true, deleted_at: true },
+    });
+
+    if (!existingComment) {
+      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+    }
+
+    if (existingComment.deleted_at) {
+      return NextResponse.json(
+        { error: 'Cannot edit deleted comment' },
+        { status: 400 },
+      );
+    }
+
+    if (existingComment.user_id !== user.id) {
+      return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+    }
+
+    // 댓글 수정
+    const updatedComment = await prisma.comments.update({
+      where: { id: commentId },
+      data: {
+        body: body.trim(),
+        updated_at: new Date(),
+      },
+    });
+
+    console.log('PATCH success:', updatedComment.id);
+    return NextResponse.json(updatedComment, { status: 200 });
+  } catch (e: any) {
+    console.error('comments PATCH error', e);
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
