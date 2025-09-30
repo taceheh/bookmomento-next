@@ -1,11 +1,10 @@
+// app/api/user/delete-account/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabaseServer';
 import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const DELETED_USER_ID = '00000000-0000-0000-0000-000000000000';
 
 export async function DELETE(req: NextRequest) {
   const supabase = await supabaseServer();
@@ -29,11 +28,11 @@ export async function DELETE(req: NextRequest) {
         where: { user_id: user.id },
       });
 
-      // 댓글 익명화
+      // 댓글 익명화 (NULL로 변경)
       await tx.comments.updateMany({
         where: { user_id: user.id },
         data: {
-          user_id: DELETED_USER_ID,
+          user_id: null, // DELETED_USER_ID 대신 null 사용
           updated_at: new Date(),
         },
       });
