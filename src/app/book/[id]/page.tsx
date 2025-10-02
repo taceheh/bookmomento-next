@@ -391,9 +391,13 @@ function CommentItem({
 
   return (
     <div className="rounded-xl p-4 border">
-      <div className="text-xs text-gray-500">
+      {/* <div className="text-xs text-gray-500">
         작성자: {comment.user_id?.slice(0, 8) ?? '익명'} ·{' '}
         {dayjs(comment.created_at).format('YYYY-MM-DD HH:mm:ss')}
+      </div> */}
+      <div className="text-xs text-gray-500">
+        작성자: {comment.user_id ? comment.user_id.slice(0, 8) : '탈퇴한 회원'}{' '}
+        · {dayjs(comment.created_at).format('YYYY-MM-DD HH:mm:ss')}
       </div>
 
       {isEditing ? (
