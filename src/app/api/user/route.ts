@@ -1,4 +1,3 @@
-// app/api/user/delete-account/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabaseServer';
 import { prisma } from '@/lib/prisma';
