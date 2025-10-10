@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export async function UPDATE(req: NextRequest) {}
 
 export async function DELETE(req: NextRequest) {
   const supabase = await supabaseServer();
