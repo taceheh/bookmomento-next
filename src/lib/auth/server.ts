@@ -15,3 +15,13 @@ export async function requireUserServer(nextPath: string) {
   if (!user) redirect(`/signin?next=${encodeURIComponent(nextPath)}`);
   return user;
 }
+
+export async function getUserDataServer(userId: string) {
+  const sb = await supabaseServer();
+  const { data } = await sb
+    .from('users')
+    .select('nickname, email')
+    .eq('id', userId)
+    .single();
+  return data;
+}

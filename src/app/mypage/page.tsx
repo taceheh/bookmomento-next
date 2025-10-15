@@ -44,12 +44,14 @@ export default async function Page() {
         >
           나의 계정 정보
         </div>
-        <div
-          className="border-b border-[#DBDBDB] flex h-12
+        <Link href="/mypage/edit">
+          <div
+            className="border-b border-[#DBDBDB] flex h-12
          items-center text-sm"
-        >
-          회원정보 수정
-        </div>
+          >
+            회원정보 수정
+          </div>
+        </Link>
         <KakaoLogoutButton />
         <div className="font-light text-xs flex justify-center m-4">
           회원탈퇴
