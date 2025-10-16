@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 interface ProfileEditFormProps {
   userId: string;
@@ -16,7 +15,6 @@ export default function ProfileEditForm({
   email,
 }: ProfileEditFormProps) {
   const router = useRouter();
-  const supabase = createClientComponentClient();
 
   const [nickname, setNickname] = useState(initialNickname);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,19 +26,9 @@ export default function ProfileEditForm({
     setError('');
     setSuccess(false);
 
-    // 유효성 검사
+    // 클라이언트 측 기본 검증
     if (!nickname.trim()) {
       setError('닉네임을 입력해주세요.');
-      return;
-    }
-
-    if (nickname.length < 2) {
-      setError('닉네임은 최소 2글자 이상이어야 합니다.');
-      return;
-    }
-
-    if (nickname.length > 20) {
-      setError('닉네임은 최대 20글자까지 가능합니다.');
       return;
     }
 
@@ -52,24 +40,32 @@ export default function ProfileEditForm({
     setIsLoading(true);
 
     try {
-      // users 테이블 업데이트
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ nickname: nickname.trim() })
-        .eq('id', userId);
+      // API Route 호출
+      const response = await fetch('/api/user', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ nickname: nickname.trim() }),
+      });
 
-      if (updateError) throw updateError;
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || '닉네임 변경에 실패했습니다.');
+        return;
+      }
 
       setSuccess(true);
 
       // 2초 후 마이페이지로 이동
       setTimeout(() => {
         router.push('/mypage');
-        router.refresh(); // 서버 컴포넌트 새로고침
+        router.refresh();
       }, 2000);
     } catch (err) {
-      console.error('업데이트 에러:', err);
-      setError('닉네임 변경에 실패했습니다. 다시 시도해주세요.');
+      console.error('요청 에러:', err);
+      setError('네트워크 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
       setIsLoading(false);
     }
