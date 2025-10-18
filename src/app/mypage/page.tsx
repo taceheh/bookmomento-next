@@ -1,3 +1,4 @@
+import DeleteAccountButton from '@/components/DeleteButton';
 import { KakaoLogoutButton } from '@/components/KakaoLogoutButton';
 import { getUserServer, requireUserServer } from '@/lib/auth/server';
 import { supabase } from '@/lib/supabase';
@@ -55,6 +56,7 @@ export default async function Page() {
         <KakaoLogoutButton />
         <div className="font-light text-xs flex justify-center m-4">
           회원탈퇴
+          <DeleteAccountButton />
         </div>
       </div>
     </div>
