@@ -4,7 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 
 export async function supabaseServer() {
-  const jar = await cookies(); // Next 15: async
+  const jar = await cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
