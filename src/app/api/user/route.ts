@@ -1,70 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabaseServer';
+import { supabaseAdmin, supabaseServer } from '@/lib/supabaseServer';
 import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export async function UPDATE(req: NextRequest) {}
 
-export async function DELETE(req: NextRequest) {
-  const supabase = await supabaseServer();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  //TODO: any 타입 추후 수정
+export async function DELETE(req: Request) {
   try {
-    await prisma.$transaction(async (tx: any) => {
-      // 좋아요/반응 삭제
-      await tx.book_reactions.deleteMany({
-        where: { user_id: user.id },
-      });
+    const sb = await supabaseServer();
+    const {
+      data: { user },
+      error: authError,
+    } = await sb.auth.getUser();
 
-      // 댓글 익명화 (NULL로 변경)
-      await tx.comments.updateMany({
-        where: { user_id: user.id },
-        data: {
-          user_id: null, // DELETED_USER_ID 대신 null 사용
-          updated_at: new Date(),
-        },
-      });
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 },
+      );
+    }
 
-      // 사용자 정보 삭제
-      await tx.users.delete({
-        where: { id: user.id },
-      });
-    });
-
-    // Auth 사용자 삭제
-    const { error: deleteError } = await supabase.auth.admin.deleteUser(
+    // authentication만 삭제하면 trigger가 나머지 자동 처리!
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(
       user.id,
     );
 
     if (deleteError) {
-      throw new Error(`Auth deletion failed: ${deleteError.message}`);
+      console.error('회원 탈퇴 실패:', deleteError);
+      return NextResponse.json(
+        { error: '회원 탈퇴 처리 중 오류가 발생했습니다.' },
+        { status: 500 },
+      );
     }
 
+    // 세션 종료
+    await sb.auth.signOut();
+
     return NextResponse.json({
-      message: 'Account deleted successfully',
-      details: {
-        commentsAnonymized: true,
-        reactionsDeleted: true,
-        userDataDeleted: true,
-      },
+      success: true,
+      message: '회원 탈퇴가 완료되었습니다.',
     });
   } catch (error) {
-    console.error('Account deletion error:', error);
+    console.error('회원 탈퇴 에러:', error);
     return NextResponse.json(
-      { error: 'Failed to delete account' },
+      { error: '서버 오류가 발생했습니다.' },
       { status: 500 },
     );
   }
