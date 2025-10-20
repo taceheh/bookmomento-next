@@ -25,7 +25,7 @@ export default function DeleteAccountButton({
     setIsDeleting(true);
 
     try {
-      const response = await fetch('/api/user/delete-account', {
+      const response = await fetch('/api/user', {
         method: 'DELETE',
       });
 
