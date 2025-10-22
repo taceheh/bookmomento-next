@@ -5,6 +5,7 @@ import axios from 'axios';
 import { ThumbsDown, ThumbsUp, Edit, Trash2 } from 'lucide-react';
 import { use, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
+import Button from '@/components/ui/Button';
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -20,7 +21,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [myReaction, setMyReaction] = useState<Reaction | null>(null);
   const [reacting, setReacting] = useState(false);
 
-  // 좋아요/싫어요 집계 + 내 상태 로드
   useEffect(() => {
     if (!id) return;
     (async () => {
@@ -36,18 +36,15 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     })();
   }, [id]);
 
-  // 책 정보 + 댓글 로드
   useEffect(() => {
     const fetchBook = async () => {
       try {
         const res = await fetch(`/api/book/bookdetail?isbn=${id}`);
-
         if (!res.ok) {
           const error = await res.json();
           throw new Error(error.error);
         }
         const data = await res.json();
-        console.log(data);
         setBook(data);
       } catch (err: any) {
         console.error('에러:', err.message);
@@ -68,7 +65,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     fetchComment();
   }, [id]);
 
-  // 댓글 등록
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!text.trim()) return;
@@ -88,24 +84,20 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     setCount(d.totalCount);
   }
 
-  // 좋아요/싫어요 토글
   async function toggle(reaction: Reaction) {
     if (!id || reacting) return;
     setReacting(true);
 
     const prev = myReaction;
     if (prev === reaction) {
-      // 같은 반응 → 취소
       if (reaction === 'like') setLikes((v) => Math.max(0, v - 1));
       else setDislikes((v) => Math.max(0, v - 1));
       setMyReaction(null);
     } else if (prev == null) {
-      // 새 반응
       if (reaction === 'like') setLikes((v) => v + 1);
       else setDislikes((v) => v + 1);
       setMyReaction(reaction);
     } else {
-      // 반대 전환
       if (prev === 'like') {
         setLikes((v) => Math.max(0, v - 1));
         setDislikes((v) => v + 1);
@@ -137,7 +129,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     setReacting(false);
   }
 
-  // 댓글 목록 새로고침
   const refreshComments = async () => {
     const res = await fetch(
       `/api/book/${encodeURIComponent(id)}/comments?parent_id=null`,
@@ -156,7 +147,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         <div>AI 토론</div>
       </div>
 
-      {/* 책 정보 */}
       <div className="relative w-full h-96 overflow-hidden">
         <img
           src={book?.cover}
@@ -179,7 +169,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         <div className="text-sm pt-2">{book?.publisher}</div>
       </div>
 
-      {/* 좋아요/싫어요 */}
       <div className="px-6 text-sm pt-4 flex pb-10 border-b border-[#DBDBDB]">
         <button
           onClick={() => toggle('like')}
@@ -207,14 +196,13 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                 ? 'text-black-600 [&_*]:fill-current'
                 : 'text-gray-600 opacity-60'
             }`}
-          />{' '}
+          />
           &nbsp; |<span className="ml-2">{dislikes}</span>
         </button>
       </div>
 
       <div className="px-6 py-10 text-sm">{book?.description}</div>
 
-      {/* 댓글 섹션 */}
       <div className="border-t border-[#DBDBDB] py-10 px-6">
         <div className="pb-10">리뷰 ({count}) </div>
         <form onSubmit={onSubmit}>
@@ -224,9 +212,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             onChange={(e) => setText(e.target.value)}
             placeholder="리뷰를 입력하세요"
           />
-          <button className="block w-full text-sm p-2 text-center border mt-1">
+          <Button type="submit" variant="outline" size="full" className="mt-1">
             리뷰 작성
-          </button>
+          </Button>
         </form>
         <CommentList
           bookIsbn={id}
@@ -238,7 +226,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   );
 }
 
-// 댓글 타입 - deleted_at 필드 추가
 type CommentItemType = {
   id: string;
   parent_id: string | null;
@@ -248,7 +235,6 @@ type CommentItemType = {
   deleted_at: string | null;
 };
 
-// 댓글 리스트
 function CommentList({
   bookIsbn,
   roots,
@@ -274,7 +260,6 @@ function CommentList({
   );
 }
 
-// 댓글 아이템
 function CommentItem({
   bookIsbn,
   comment,
@@ -291,8 +276,6 @@ function CommentItem({
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [replies, setReplies] = useState<CommentItemType[] | null>(null);
-
-  // 수정 관련 상태
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(comment.body);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -331,7 +314,6 @@ function CommentItem({
     setReplyOpen(false);
   };
 
-  // 댓글 수정
   const handleEdit = async () => {
     if (!editText.trim() || isUpdating) return;
 
@@ -345,7 +327,6 @@ function CommentItem({
       );
 
       setIsEditing(false);
-      // 부모 댓글이면 전체 목록 새로고침, 답글이면 답글 목록만 새로고침
       if (comment.parent_id === null) {
         onCommentChange();
       } else {
@@ -359,10 +340,8 @@ function CommentItem({
     }
   };
 
-  // 댓글 삭제 - query parameter 방식으로 수정
   const handleDelete = async () => {
     if (isDeleting) return;
-
     if (!confirm('정말로 이 댓글을 삭제하시겠습니까?')) return;
 
     setIsDeleting(true);
@@ -371,7 +350,6 @@ function CommentItem({
         `/api/book/${encodeURIComponent(bookIsbn)}/comments?book_isbn=${encodeURIComponent(bookIsbn)}&comment_id=${comment.id}`,
       );
 
-      // 부모 댓글이면 전체 목록 새로고침, 답글이면 답글 목록만 새로고침
       if (comment.parent_id === null) {
         onCommentChange();
       } else {
@@ -391,10 +369,6 @@ function CommentItem({
 
   return (
     <div className="rounded-xl p-4 border">
-      {/* <div className="text-xs text-gray-500">
-        작성자: {comment.user_id?.slice(0, 8) ?? '익명'} ·{' '}
-        {dayjs(comment.created_at).format('YYYY-MM-DD HH:mm:ss')}
-      </div> */}
       <div className="text-xs text-gray-500">
         작성자: {comment.user_id ? comment.user_id.slice(0, 8) : '탈퇴한 회원'}{' '}
         · {dayjs(comment.created_at).format('YYYY-MM-DD HH:mm:ss')}
@@ -409,22 +383,23 @@ function CommentItem({
             onChange={(e) => setEditText(e.target.value)}
           />
           <div className="mt-2 flex gap-2">
-            <button
+            <Button
               onClick={handleEdit}
-              disabled={isUpdating}
-              className="px-3 py-1 bg-blue-500 text-white text-sm rounded disabled:opacity-50"
+              variant="primary"
+              isLoading={isUpdating}
+              loadingText="수정 중..."
             >
-              {isUpdating ? '수정 중...' : '수정 완료'}
-            </button>
-            <button
+              수정 완료
+            </Button>
+            <Button
               onClick={() => {
                 setIsEditing(false);
                 setEditText(comment.body);
               }}
-              className="px-3 py-1 bg-gray-500 text-white text-sm rounded"
+              variant="secondary"
             >
               취소
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
@@ -455,7 +430,6 @@ function CommentItem({
           {openReplies ? '답글 접기' : '답글 보기'}
         </button>
 
-        {/* 수정/삭제 버튼 - 삭제되지 않은 댓글만 */}
         {!comment.deleted_at && (
           <div className="flex gap-2 ml-auto">
             <button
@@ -487,21 +461,18 @@ function CommentItem({
             onChange={(e) => setReplyText(e.target.value)}
           />
           <div className="mt-2 flex gap-2">
-            <button
-              onClick={submitReply}
-              className="px-3 py-1 bg-black text-white text-sm rounded"
-            >
+            <Button onClick={submitReply} variant="primary">
               등록
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => {
                 setReplyOpen(false);
                 setReplyText('');
               }}
-              className="px-3 py-1 bg-gray-500 text-white text-sm rounded"
+              variant="secondary"
             >
               취소
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -526,7 +497,6 @@ function CommentItem({
   );
 }
 
-// 답글 아이템 컴포넌트 - API 호출 방식 통일
 function ReplyItem({
   bookIsbn,
   reply,
@@ -541,7 +511,6 @@ function ReplyItem({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // 답글 수정 - PATCH + query parameter로 통일
   const handleEdit = async () => {
     if (!editText.trim() || isUpdating) return;
 
@@ -564,10 +533,8 @@ function ReplyItem({
     }
   };
 
-  // 답글 삭제 - DELETE + query parameter로 통일
   const handleDelete = async () => {
     if (isDeleting) return;
-
     if (!confirm('정말로 이 답글을 삭제하시겠습니까?')) return;
 
     setIsDeleting(true);
@@ -600,22 +567,23 @@ function ReplyItem({
             onChange={(e) => setEditText(e.target.value)}
           />
           <div className="mt-2 flex gap-2">
-            <button
+            <Button
               onClick={handleEdit}
-              disabled={isUpdating}
-              className="px-3 py-1 bg-blue-500 text-white text-sm rounded disabled:opacity-50"
+              variant="primary"
+              isLoading={isUpdating}
+              loadingText="수정 중..."
             >
-              {isUpdating ? '수정 중...' : '수정 완료'}
-            </button>
-            <button
+              수정 완료
+            </Button>
+            <Button
               onClick={() => {
                 setIsEditing(false);
                 setEditText(reply.body);
               }}
-              className="px-3 py-1 bg-gray-500 text-white text-sm rounded"
+              variant="secondary"
             >
               취소
-            </button>
+            </Button>
           </div>
         </div>
       ) : (

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Button from './ui/Button';
 
 interface ProfileEditFormProps {
   userId: string;
@@ -123,20 +124,23 @@ export default function ProfileEditForm({
 
       {/* 버튼 */}
       <div className="flex gap-3">
-        <button
+        <Button
           type="button"
           onClick={() => router.back()}
-          className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+          variant="secondary"
+          className="flex-1"
         >
           취소
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
-          disabled={isLoading}
-          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition"
+          variant="primary"
+          isLoading={isLoading}
+          loadingText="저장 중..."
+          className="flex-1"
         >
-          {isLoading ? '저장 중...' : '저장하기'}
-        </button>
+          저장하기
+        </Button>
       </div>
     </form>
   );

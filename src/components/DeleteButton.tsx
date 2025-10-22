@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Button from './ui/Button';
 
 export default function DeleteAccountButton({
   className = '',
@@ -44,12 +45,14 @@ export default function DeleteAccountButton({
   };
 
   return (
-    <button
+    <Button
       onClick={handleDeleteAccount}
-      disabled={isDeleting}
-      className={`px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded disabled:opacity-50 ${className}`}
+      variant="danger"
+      isLoading={isDeleting}
+      loadingText="탈퇴 처리 중..."
+      className={className}
     >
-      {isDeleting ? '탈퇴 처리 중...' : '회원탈퇴'}
-    </button>
+      회원탈퇴
+    </Button>
   );
 }
