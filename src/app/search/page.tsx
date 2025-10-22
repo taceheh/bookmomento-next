@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Book } from '@/types/book';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Input from '@/components/ui/Input';
 
 export default function Page() {
   const [books, setBooks] = useState<Book[] | null>(null);
@@ -23,12 +24,13 @@ export default function Page() {
   return (
     <div className="">
       <div className=" flex border border-gray-300 bg-white px-2 py-2 w-[80%] m-auto mt-10 mb-2">
-        <input
+        <Input
           type="text"
           value={query}
           onChange={handleChange}
           placeholder="검색어 입력"
-          className="bg-transparent outline-none w-full text-sm text-black"
+          fullWidth
+          className="bg-transparent text-sm"
         />
 
         <Link href={`/search?q=${query}`}>
