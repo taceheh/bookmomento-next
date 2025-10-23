@@ -1,144 +1,66 @@
-'use client';
-
 import Slider from '@/components/Slider';
 import { SortTabBar } from '@/components/sortTabBar';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { Book } from '@/types/book';
+import Section from '@/components/Section';
 
-interface Book {
-  isbn: string;
-  title: string;
-  cover: string;
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
+async function getBestSellers(): Promise<Book[]> {
+  const res = await fetch(`${BASE_URL}/api/book/bestseller`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) return [];
+  return res.json();
 }
 
-interface SectionProps {
-  title: string;
-  books: Book[] | null; // null = 로딩 중, [] = 데이터 없음
-  emptyText?: string; // 섹션별 빈 문구
+async function getNewBooks(): Promise<Book[]> {
+  const res = await fetch(`${BASE_URL}/api/book/brendnew`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) return [];
+  return res.json();
 }
 
-export default function HomePage() {
-  const [bestSellers, setBestSellers] = useState<Book[] | null>(null);
-  const [newBooks, setNewBooks] = useState<Book[] | null>(null);
-  const [reviewRanking, setReviewRanking] = useState<Book[] | null>(null);
-  const [likeRanking, setLikeRanking] = useState<Book[] | null>(null);
-  const [query, setQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Book[]>([]);
+async function getReviewRanking(): Promise<Book[]> {
+  const res = await fetch(`${BASE_URL}/api/book/most-commented`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) return [];
+  const { items } = await res.json();
+  return items
+    .filter((it: any) => it.book)
+    .map((it: any) => ({
+      isbn: it.isbn,
+      title: it.book.title,
+      cover: it.book.cover,
+    }));
+}
 
-  useEffect(() => {
-    fetch('/api/book/bestseller')
-      .then((res) => res.json())
-      .then((data) => setBestSellers(data))
-      .catch(() => setBestSellers([]));
+async function getLikeRanking(): Promise<Book[]> {
+  const res = await fetch(`${BASE_URL}/api/book/most-liked`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) return [];
+  const { items } = await res.json();
+  return items
+    .filter((it: any) => it.book)
+    .map((it: any) => ({
+      isbn: it.isbn,
+      title: it.book.title,
+      cover: it.book.cover,
+    }));
+}
 
-    fetch('/api/book/brendnew')
-      .then((res) => res.json())
-      .then((data) => setNewBooks(data))
-      .catch(() => setNewBooks([]));
-
-    fetch('/api/book/most-commented')
-      .then((res) => res.json())
-      .then(({ items }) =>
-        setReviewRanking(
-          items
-            .filter((it: any) => it.book)
-            .map((it: any) => ({
-              isbn: it.isbn,
-              title: it.book.title,
-              cover: it.book.cover,
-            })),
-        ),
-      )
-      .catch(() => setReviewRanking([]));
-
-    fetch('/api/book/most-liked')
-      .then((res) => res.json())
-      .then(({ items }) =>
-        setLikeRanking(
-          items
-            .filter((it: any) => it.book)
-            .map((it: any) => ({
-              isbn: it.isbn,
-              title: it.book.title,
-              cover: it.book.cover,
-            })),
-        ),
-      )
-      .catch(() => setLikeRanking([]));
-  }, []);
-
-  const handleSearch = async () => {
-    if (!query.trim()) return;
-    const res = await fetch(`/search?title=${query}`);
-    const data = await res.json();
-    setSearchResults(data);
-  };
+export default async function HomePage() {
+  const [bestSellers, newBooks, reviewRanking, likeRanking] = await Promise.all(
+    [getBestSellers(), getNewBooks(), getReviewRanking(), getLikeRanking()],
+  );
 
   return (
     <>
       <SortTabBar />
       <main className="max-w-screen-md mx-auto px-4 py-6 space-y-8">
-        {/* <div className="bg-black h-[400px]"></div> */}
         <Slider />
-        <nav className="justify-between flex">
-          <div>
-            <img
-              className="w-20 h-20 rounded-xl"
-              src="/image/bestseller-btn.png"
-              alt="버튼"
-            />
-            <div className="text-sm mt-2 text-center w-20">베스트셀러</div>
-          </div>
-          <div>
-            <img
-              className="w-20 h-20 rounded-xl"
-              src="/image/new-btn.png"
-              alt="버튼"
-            />
-            <div className="text-sm mt-2 text-center w-20">신간 추천</div>
-          </div>
-          <div>
-            <img
-              className="w-20 h-20 rounded-xl"
-              src="/image/comment-btn.png"
-              alt="버튼"
-            />
-            <div className="text-sm mt-2 text-center w-20">댓글</div>
-          </div>
-          <div>
-            <img
-              className="w-20 h-20 rounded-xl"
-              src="/image/like-btn.png"
-              alt="버튼"
-            />
-            <div className="text-sm mt-2 text-center w-20">좋아요</div>
-          </div>
-          <div>
-            <img
-              className="w-20 h-20 rounded-xl"
-              src="/image/discussion-btn.png"
-              alt="버튼"
-            />
-            <div className="text-sm mt-2 text-center w-20">토론</div>
-          </div>
-        </nav>
-        {searchResults.length > 0 && (
-          <div className="grid grid-cols-2 gap-4">
-            {searchResults.map((book) => (
-              <div key={book.isbn}>
-                <button
-                  onClick={() =>
-                    (window.location.href = `/detailGo?isbn=${book.isbn}`)
-                  }
-                >
-                  <img src={book.cover} alt="book cover" />
-                  <div>{book.title}</div>
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
         <Section title="베스트셀러" books={bestSellers} />
         <Section title="신간 추천" books={newBooks} />
         <Section
@@ -157,29 +79,5 @@ export default function HomePage() {
         </footer>
       </main>
     </>
-  );
-}
-
-function Section({ title, books, emptyText }: SectionProps) {
-  return (
-    <section className="space-y-2 pb-10">
-      <h2 className="text-lg font-bold">{title}</h2>
-      {books === null ? (
-        <div className="text-sm text-gray-400 py-6">불러오는 중...</div>
-      ) : books.length === 0 ? (
-        <div className="text-sm text-gray-500 py-6">
-          {emptyText ?? '표시할 항목이 없습니다.'}
-        </div>
-      ) : (
-        <div className="grid grid-cols-5 gap-4 h-40">
-          {books.map((book) => (
-            <Link href={`/book/${book.isbn}`} key={book.isbn}>
-              <img className="w-30 h-40" src={book.cover} alt="book cover" />
-              <div className="text-sm pt-2 line-clamp-2">{book.title}</div>
-            </Link>
-          ))}
-        </div>
-      )}
-    </section>
   );
 }

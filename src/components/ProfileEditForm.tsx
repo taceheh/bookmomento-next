@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Button from './ui/Button';
+import Input from './ui/Input';
 
 interface ProfileEditFormProps {
   userId: string;
@@ -40,7 +42,6 @@ export default function ProfileEditForm({
     setIsLoading(true);
 
     try {
-      // API Route 호출
       const response = await fetch('/api/user', {
         method: 'PATCH',
         headers: {
@@ -58,7 +59,6 @@ export default function ProfileEditForm({
 
       setSuccess(true);
 
-      // 2초 후 마이페이지로 이동
       setTimeout(() => {
         router.push('/mypage');
         router.refresh();
@@ -78,12 +78,7 @@ export default function ProfileEditForm({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           이메일
         </label>
-        <input
-          type="email"
-          value={email}
-          disabled
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
-        />
+        <Input type="email" value={email} disabled fullWidth />
         <p className="mt-1 text-xs text-gray-500">
           카카오 로그인으로 가입하여 변경할 수 없습니다.
         </p>
@@ -94,13 +89,13 @@ export default function ProfileEditForm({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           닉네임
         </label>
-        <input
+        <Input
           type="text"
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
           placeholder="닉네임을 입력하세요"
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
           maxLength={20}
+          fullWidth
         />
         <p className="mt-1 text-xs text-gray-500">
           2-20자 사이로 입력해주세요.
@@ -123,20 +118,23 @@ export default function ProfileEditForm({
 
       {/* 버튼 */}
       <div className="flex gap-3">
-        <button
+        <Button
           type="button"
           onClick={() => router.back()}
-          className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+          variant="secondary"
+          className="flex-1"
         >
           취소
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
-          disabled={isLoading}
-          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition"
+          variant="primary"
+          isLoading={isLoading}
+          loadingText="저장 중..."
+          className="flex-1"
         >
-          {isLoading ? '저장 중...' : '저장하기'}
-        </button>
+          저장하기
+        </Button>
       </div>
     </form>
   );

@@ -1,9 +1,7 @@
 import DeleteAccountButton from '@/components/DeleteButton';
 import { KakaoLogoutButton } from '@/components/KakaoLogoutButton';
-import { getUserServer, requireUserServer } from '@/lib/auth/server';
-import { supabase } from '@/lib/supabase';
+import { requireUserServer } from '@/lib/auth/server';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 

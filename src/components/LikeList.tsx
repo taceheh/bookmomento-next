@@ -2,9 +2,10 @@
 
 import { useAuthStore } from '@/stores/authStore';
 import useSWR from 'swr';
+import Button from './ui/Button';
 
 const fetcher = async (url: string) => {
-  console.log('🚀 Fetching:', url);
+  // console.log('Fetching:', url);
   const response = await fetch(url);
 
   if (!response.ok) {
@@ -17,7 +18,7 @@ const fetcher = async (url: string) => {
 };
 
 export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
-  // ✅ 스토어에서 직접 사용자 정보 가져오기
+  // 스토어에서 직접 사용자 정보 가져오기
   const { user, loading: authLoading } = useAuthStore();
 
   // API 엔드포인트 - 사용자 ID를 URL에 포함
@@ -27,15 +28,6 @@ export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
   });
-
-  //   console.log('🎯 Component state:', {
-  //     authLoading,
-  //     hasUser: !!user,
-  //     userId: user?.id,
-  //     endpoint,
-  //     isLoading,
-  //   }
-  // );
 
   // 인증 로딩 중
   if (authLoading) {
@@ -62,12 +54,9 @@ export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
       <div>
         <div className="text-red-500">에러가 발생했습니다:</div>
         <div className="text-sm text-red-400">{error.message}</div>
-        <button
-          onClick={() => mutate()}
-          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded text-sm"
-        >
+        <Button onClick={() => mutate()} variant="primary" className="mt-2">
           다시 시도
-        </button>
+        </Button>
       </div>
     );
   }
@@ -80,7 +69,9 @@ export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
         {data?.error && (
           <div className="text-sm text-red-400">{data.error}</div>
         )}
-        <button onClick={() => mutate()}>새로고침</button>
+        <Button onClick={() => mutate()} variant="ghost" size="sm">
+          새로고침
+        </Button>
       </div>
     );
   }
@@ -90,7 +81,9 @@ export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
     return (
       <div>
         <div>잘못된 데이터 형식입니다.</div>
-        <button onClick={() => mutate()}>새로고침</button>
+        <Button onClick={() => mutate()} variant="ghost" size="sm">
+          새로고침
+        </Button>
       </div>
     );
   }
@@ -111,12 +104,9 @@ export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
     <div>
       <div className="mb-4 flex justify-between items-center">
         <span className="text-sm text-gray-500">총 {data.length}개</span>
-        <button
-          onClick={() => mutate()}
-          className="px-3 py-1 bg-gray-200 text-sm rounded hover:bg-gray-300"
-        >
+        <Button onClick={() => mutate()} variant="ghost" size="sm">
           새로고침
-        </button>
+        </Button>
       </div>
 
       <ul className="space-y-4">
