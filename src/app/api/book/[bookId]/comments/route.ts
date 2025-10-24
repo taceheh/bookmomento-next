@@ -131,7 +131,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { bookId: string } },
 ) {
-  console.log('DELETE request received for bookId:', params.bookId);
+  // console.log('DELETE request received for bookId:', params.bookId);
 
   const supabase = await supabaseServer();
   const {

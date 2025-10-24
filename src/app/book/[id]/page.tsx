@@ -1,5 +1,8 @@
-import BookDetailClient from '@/components/BookDetailClient';
+import BookDetailClient from '@/components/book/BookDetailClient';
+import CommentListLoader from '@/components/book/CommentListLoader';
+import CommentSkeleton from '@/components/book/CommentSkeleton';
 import { Book } from '@/types/book';
+import { Suspense } from 'react';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
@@ -10,19 +13,6 @@ async function getBookDetail(id: string): Promise<Book | null> {
     return res.json();
   } catch (error) {
     return null;
-  }
-}
-
-async function getInitialComments(id: string) {
-  try {
-    const res = await fetch(
-      `${BASE_URL}/api/book/${id}/comments?parent_id=null`,
-    );
-    if (!res.ok) return { items: [], totalCount: 0 };
-    const data = await res.json();
-    return { items: data.items, totalCount: data.totalCount };
-  } catch (error) {
-    return { items: [], totalCount: 0 };
   }
 }
 
@@ -40,9 +30,9 @@ async function getInitialReactions(id: string) {
 
 export default async function Page({ params }: { params: { id: string } }) {
   const { id } = await params;
-  const [book, commentsData, reactionData] = await Promise.all([
+
+  const [book, reactionData] = await Promise.all([
     getBookDetail(id),
-    getInitialComments(id),
     getInitialReactions(id),
   ]);
 
@@ -51,12 +41,18 @@ export default async function Page({ params }: { params: { id: string } }) {
   }
 
   return (
-    <BookDetailClient
-      initialBook={book}
-      initialComments={commentsData.items}
-      initialCommentCount={commentsData.totalCount}
-      initialReactionData={reactionData}
-      bookId={id}
-    />
+    <>
+      <BookDetailClient
+        bookId={id}
+        initialBook={book}
+        initialReactionData={reactionData}
+      />
+
+      <div className="border-t border-[#DBDBDB] py-10 px-6">
+        <Suspense fallback={<CommentSkeleton />}>
+          <CommentListLoader bookId={id} />
+        </Suspense>
+      </div>
+    </>
   );
 }
