@@ -1,45 +1,36 @@
 'use client';
 
-import { Book } from '@/types/book';
+import { useState } from 'react';
 import { CommentItemType } from '@/types/comment';
 import axios from 'axios';
-import { ThumbsDown, ThumbsUp, Edit, Trash2 } from 'lucide-react';
-import { useState } from 'react';
 import dayjs from 'dayjs';
+import { Edit, Trash2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
-interface BookDetailClientProps {
+interface CommentListClientProps {
   bookId: string;
-  initialBook: Book;
   initialComments: CommentItemType[];
   initialCommentCount: number;
-  initialReactionData: {
-    likes: number;
-    dislikes: number;
-    myReaction: 'like' | 'dislike' | null;
-  };
 }
 
-export default function BookDetailClient({
+export default function CommentListClient({
   bookId,
-  initialBook,
   initialComments,
   initialCommentCount,
-  initialReactionData,
-}: BookDetailClientProps) {
+}: CommentListClientProps) {
   const id = bookId;
-
-  const [book, setBook] = useState<Book | null>(initialBook);
   const [text, setText] = useState('');
   const [count, setCount] = useState(initialCommentCount);
   const [comments, setComments] = useState<CommentItemType[]>(initialComments);
 
-  type Reaction = 'like' | 'dislike';
-
-  const [likes, setLikes] = useState(initialReactionData.likes);
-  const [dislikes, setDislikes] = useState(initialReactionData.dislikes);
-  const [myReaction, setMyReaction] = useState(initialReactionData.myReaction);
-  const [reacting, setReacting] = useState(false);
+  const refreshComments = async () => {
+    const res = await fetch(
+      `/api/book/${encodeURIComponent(id)}/comments?parent_id=null`,
+    );
+    const data = await res.json();
+    setComments(data.items);
+    setCount(data.totalCount);
+  };
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -51,145 +42,29 @@ export default function BookDetailClient({
     });
 
     setText('');
-    refreshComments();
+    refreshComments(); // refreshComments 호출
   }
-
-  async function toggle(reaction: Reaction) {
-    if (!id || reacting) return;
-    setReacting(true);
-
-    const prev = myReaction;
-    if (prev === reaction) {
-      if (reaction === 'like') setLikes((v) => Math.max(0, v - 1));
-      else setDislikes((v) => Math.max(0, v - 1));
-      setMyReaction(null);
-    } else if (prev == null) {
-      if (reaction === 'like') setLikes((v) => v + 1);
-      else setDislikes((v) => v + 1);
-      setMyReaction(reaction);
-    } else {
-      if (prev === 'like') {
-        setLikes((v) => Math.max(0, v - 1));
-        setDislikes((v) => v + 1);
-      } else {
-        setDislikes((v) => Math.max(0, v - 1));
-        setLikes((v) => v + 1);
-      }
-      setMyReaction(reaction);
-    }
-
-    const res = await fetch(`/api/book/${encodeURIComponent(id)}/reaction`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reaction }),
-    });
-
-    if (!res.ok) {
-      const agg = await fetch(`/api/book/${encodeURIComponent(id)}/reaction`, {
-        cache: 'no-store',
-      });
-      if (agg.ok) {
-        const j = await agg.json();
-        setLikes(j.likes ?? 0);
-        setDislikes(j.dislikes ?? 0);
-        setMyReaction(j.myReaction ?? null);
-      }
-    }
-    setReacting(false);
-  }
-
-  const refreshComments = async () => {
-    const res = await fetch(
-      `/api/book/${encodeURIComponent(id)}/comments?parent_id=null`,
-    );
-    const data = await res.json();
-    setComments(data.items);
-    setCount(data.totalCount);
-  };
 
   return (
-    <div>
-      <div className="flex h-20 items-center text-sm">
-        <div className="ml-2 mr-8">책정보</div>
-        <div>AI 토론</div>
-      </div>
-
-      <div className="relative w-full h-96 overflow-hidden">
-        <img
-          src={book?.cover}
-          alt="cover"
-          className="absolute inset-0 w-full h-full object-cover blur-md scale-110"
+    <>
+      <div className="pb-10">리뷰 ({count}) </div>
+      <form onSubmit={onSubmit}>
+        <input
+          className="border border-[#DBDBDB] w-full h-20"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="리뷰를 입력하세요"
         />
-        <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10" />
-        <div className="relative z-20 flex justify-center items-center h-full">
-          <img
-            src={book?.cover}
-            alt="cover"
-            className="h-88 shadow-xl rounded-md"
-          />
-        </div>
-      </div>
-
-      <div className="pt-10 px-6">
-        <div className="text-lg font-bold">{book?.title}</div>
-        <div className="text-sm pt-4">{book?.author}</div>
-        <div className="text-sm pt-2">{book?.publisher}</div>
-      </div>
-
-      <div className="px-6 text-sm pt-4 flex pb-10 border-b border-[#DBDBDB]">
-        <button
-          onClick={() => toggle('like')}
-          disabled={reacting}
-          className="inline-flex items-center px-5 py-1 bg-gray-100 rounded-full text-sm mr-2"
-        >
-          <ThumbsUp
-            className={`w-4 ${
-              myReaction === 'like'
-                ? 'text-black-600 [&_*]:fill-current'
-                : 'text-gray-600 opacity-60'
-            }`}
-          />
-          &nbsp; |<span className="ml-2">{likes}</span>
-        </button>
-
-        <button
-          onClick={() => toggle('dislike')}
-          disabled={reacting}
-          className="inline-flex items-center px-5 py-1 bg-gray-100 rounded-full text-sm"
-        >
-          <ThumbsDown
-            className={`w-4 ${
-              myReaction === 'dislike'
-                ? 'text-black-600 [&_*]:fill-current'
-                : 'text-gray-600 opacity-60'
-            }`}
-          />
-          &nbsp; |<span className="ml-2">{dislikes}</span>
-        </button>
-      </div>
-
-      <div className="px-6 py-10 text-sm">{book?.description}</div>
-
-      <div className="border-t border-[#DBDBDB] py-10 px-6">
-        <div className="pb-10">리뷰 ({count}) </div>
-        <form onSubmit={onSubmit}>
-          <input
-            className="border border-[#DBDBDB] w-full h-20"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="리뷰를 입력하세요"
-          />
-          <Button type="submit" variant="outline" size="full" className="mt-1">
-            리뷰 작성
-          </Button>
-        </form>
-        <CommentList
-          bookIsbn={id}
-          roots={comments}
-          onCommentChange={refreshComments}
-        />
-      </div>
-    </div>
+        <Button type="submit" variant="outline" size="full" className="mt-1">
+          리뷰 작성
+        </Button>
+      </form>
+      <CommentList
+        bookIsbn={id}
+        roots={comments}
+        onCommentChange={refreshComments}
+      />
+    </>
   );
 }
 
@@ -244,7 +119,9 @@ function CommentItem({
   const loadReplies = async () => {
     setLoading(true);
     const res = await fetch(
-      `/api/book/${encodeURIComponent(bookIsbn)}/comments?parent_id=${comment.id}`,
+      `/api/book/${encodeURIComponent(bookIsbn)}/comments?parent_id=${
+        comment.id
+      }`,
     );
     const j = await res.json();
     setReplies(j.items ?? []);
@@ -278,7 +155,11 @@ function CommentItem({
     setIsUpdating(true);
     try {
       await axios.patch(
-        `/api/book/${encodeURIComponent(bookIsbn)}/comments?book_isbn=${encodeURIComponent(bookIsbn)}&comment_id=${comment.id}`,
+        `/api/book/${encodeURIComponent(
+          bookIsbn,
+        )}/comments?book_isbn=${encodeURIComponent(bookIsbn)}&comment_id=${
+          comment.id
+        }`,
         {
           body: editText.trim(),
         },
@@ -286,13 +167,12 @@ function CommentItem({
 
       setIsEditing(false);
       if (comment.parent_id === null) {
-        onCommentChange();
+        onCommentChange(); // (루트 댓글은 부모 프롭 호출)
       } else {
         await loadReplies();
       }
     } catch (error) {
       console.error('댓글 수정 실패:', error);
-      // alert('댓글 수정에 실패했습니다.'); // 🚨 alert()는 피하세요!
     } finally {
       setIsUpdating(false);
     }
@@ -300,13 +180,16 @@ function CommentItem({
 
   const handleDelete = async () => {
     if (isDeleting) return;
-    // 🚨 confirm()은 피하세요! 나중에 모달로 바꾸는 게 좋습니다.
     // if (!confirm('정말로 이 댓글을 삭제하시겠습니까?')) return;
 
     setIsDeleting(true);
     try {
       await axios.delete(
-        `/api/book/${encodeURIComponent(bookIsbn)}/comments?book_isbn=${encodeURIComponent(bookIsbn)}&comment_id=${comment.id}`,
+        `/api/book/${encodeURIComponent(
+          bookIsbn,
+        )}/comments?book_isbn=${encodeURIComponent(bookIsbn)}&comment_id=${
+          comment.id
+        }`,
       );
 
       if (comment.parent_id === null) {
@@ -476,7 +359,11 @@ function ReplyItem({
     setIsUpdating(true);
     try {
       await axios.patch(
-        `/api/book/${encodeURIComponent(bookIsbn)}/comments?book_isbn=${encodeURIComponent(bookIsbn)}&comment_id=${reply.id}`,
+        `/api/book/${encodeURIComponent(
+          bookIsbn,
+        )}/comments?book_isbn=${encodeURIComponent(bookIsbn)}&comment_id=${
+          reply.id
+        }`,
         {
           body: editText.trim(),
         },
@@ -499,7 +386,11 @@ function ReplyItem({
     setIsDeleting(true);
     try {
       await axios.delete(
-        `/api/book/${encodeURIComponent(bookIsbn)}/comments?book_isbn=${encodeURIComponent(bookIsbn)}&comment_id=${reply.id}`,
+        `/api/book/${encodeURIComponent(
+          bookIsbn,
+        )}/comments?book_isbn=${encodeURIComponent(bookIsbn)}&comment_id=${
+          reply.id
+        }`,
       );
       onReplyChange();
     } catch (error) {
