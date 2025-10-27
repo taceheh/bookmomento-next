@@ -51,34 +51,28 @@ export async function DELETE(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    // 1. 요청 본문 파싱
     const { nickname } = await req.json();
 
-    // 2. 유효성 검사
     if (!nickname || typeof nickname !== 'string') {
       return NextResponse.json(
         { error: '닉네임을 입력해주세요.' },
         { status: 400 },
       );
     }
-
     const trimmedNickname = nickname.trim();
-
-    if (trimmedNickname.length < 2) {
+    if (trimmedNickname.length < 2 || trimmedNickname.length > 20) {
       return NextResponse.json(
-        { error: '닉네임은 최소 2글자 이상이어야 합니다.' },
+        { error: '닉네임은 2자 이상 20자 이하여야 합니다.' },
+        { status: 400 },
+      );
+    }
+    if (!/^[a-zA-Z0-9가-힣_]*$/.test(trimmedNickname)) {
+      return NextResponse.json(
+        { error: '닉네임은 영문, 숫자, 한글, 밑줄(_)만 사용할 수 있습니다.' },
         { status: 400 },
       );
     }
 
-    if (trimmedNickname.length > 20) {
-      return NextResponse.json(
-        { error: '닉네임은 최대 20글자까지 가능합니다.' },
-        { status: 400 },
-      );
-    }
-
-    // 3. 사용자 인증 확인
     const sb = await supabaseServer();
     const {
       data: { user },
@@ -92,27 +86,32 @@ export async function PATCH(req: Request) {
       );
     }
 
-    // 5. DB 업데이트
-    const { error: updateError } = await sb
-      .from('users')
-      .update({ nickname: trimmedNickname })
-      .eq('id', user.id);
+    const updatedUser = await prisma.users.update({
+      where: { id: user.id },
+      data: { nickname: trimmedNickname },
+    });
 
-    if (updateError) {
-      console.error('DB 업데이트 에러:', updateError);
+    if (!updatedUser) {
+      console.error('Prisma 업데이트 실패:', user.id);
       return NextResponse.json(
         { error: '닉네임 변경에 실패했습니다.' },
         { status: 500 },
       );
     }
 
-    // 6. 성공 응답
     return NextResponse.json({
       success: true,
-      nickname: trimmedNickname,
+      nickname: updatedUser.nickname,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('API 에러:', error);
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: '이미 사용 중인 닉네임입니다.' },
+        { status: 409 }, // 409 Conflict
+      );
+    }
+
     return NextResponse.json(
       { error: '서버 오류가 발생했습니다.' },
       { status: 500 },
