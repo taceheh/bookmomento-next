@@ -29,16 +29,13 @@ export default function ProfileEditForm({
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      nickname: initialNickname, // ⭐️ 폼의 기본값 설정
+      nickname: initialNickname,
     },
   });
 
-  // ⭐️ 폼 유효성 검사 통과 시 실행될 함수
   const onValidSubmit = async (data: ProfileFormData) => {
     setServerError(null);
     try {
-      // ⭐️ 나중에 '서버 액션'으로 바꿀 부분입니다. (Day 2)
-      // ⭐️ (PR 템플릿에 있던 /api/user PATCH를 임시로 사용)
       const response = await fetch('/api/user', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -51,15 +48,14 @@ export default function ProfileEditForm({
       }
 
       // 성공 시
-      alert('닉네임이 성공적으로 변경되었습니다.'); // (나중에 더 좋은 UI로 변경)
-      router.refresh(); // ⭐️ 서버 데이터를 새로고침 (페이지 리로드 X)
+      alert('닉네임이 성공적으로 변경되었습니다.');
+      router.refresh();
     } catch (error: any) {
       setServerError(error.message);
     }
   };
 
   return (
-    // ⭐️ handleSubmit이 onValidSubmit을 호출
     <form onSubmit={handleSubmit(onValidSubmit)} className="space-y-6">
       <div>
         <label
@@ -72,7 +68,7 @@ export default function ProfileEditForm({
           id="email"
           type="email"
           value={email}
-          disabled // ⭐️ 비활성화
+          disabled
           fullWidth
           className="mt-1"
         />
@@ -89,22 +85,17 @@ export default function ProfileEditForm({
           id="nickname"
           fullWidth
           className="mt-1"
-          // ⭐️ RHF의 register 함수로 Input 등록
           {...register('nickname')}
-          // ⭐️ Zod가 감지한 에러 메시지를 Input의 error prop으로 전달
           error={errors.nickname?.message}
         />
       </div>
 
-      {/* ⭐️ 서버 측 에러가 발생하면 표시 */}
       {serverError && <p className="text-sm text-red-600">{serverError}</p>}
 
       <div>
         <Button
           type="submit"
           size="full"
-          // ⭐️ isSubmitting: API 요청 중일 때
-          // ⭐️ !isDirty: 폼이 수정되지 않았을 때
           disabled={isSubmitting || !isDirty}
           isLoading={isSubmitting}
           loadingText="저장 중..."

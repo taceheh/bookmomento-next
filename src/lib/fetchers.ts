@@ -3,7 +3,6 @@
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
 async function getBestSellers() {
-  // ⭐️ 서버 컴포넌트 fetch는 절대 경로 사용!
   const res = await fetch(`${BASE_URL}/api/book/bestseller`, {
     cache: 'no-store',
   });
@@ -20,7 +19,6 @@ async function getNewBooks() {
 }
 
 async function getReviewRanking() {
-  // ⭐️ API 응답 형식이 다르므로 변환 로직 포함
   const res = await fetch(`${BASE_URL}/api/book/most-commented`, {
     cache: 'no-store',
   });
