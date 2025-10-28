@@ -4,74 +4,69 @@ import { Book } from '@/types/book';
 import axios from 'axios';
 import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query'; // useQueryClient 추가
+
+interface ReactionData {
+  likes: number;
+  dislikes: number;
+  myReaction: 'like' | 'dislike' | null;
+}
+
+const fetchReactionData = async (bookId: string): Promise<ReactionData> => {
+  const res = await fetch(`/api/book/${encodeURIComponent(bookId)}/reaction`);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to fetch reaction data');
+  }
+  return res.json();
+};
 
 interface BookDetailClientProps {
   bookId: string;
   initialBook: Book;
-  initialReactionData: {
-    likes: number;
-    dislikes: number;
-    myReaction: 'like' | 'dislike' | null;
-  };
 }
 
 export default function BookDetailClient({
   bookId,
   initialBook,
-  initialReactionData,
 }: BookDetailClientProps) {
   const id = bookId;
   const [book, setBook] = useState<Book | null>(initialBook);
-
-  type Reaction = 'like' | 'dislike';
-
-  const [likes, setLikes] = useState(initialReactionData.likes);
-  const [dislikes, setDislikes] = useState(initialReactionData.dislikes);
-  const [myReaction, setMyReaction] = useState(initialReactionData.myReaction);
   const [reacting, setReacting] = useState(false);
+  const queryClient = useQueryClient(); // QueryClient 인스턴스 가져오기
 
-  async function toggle(reaction: Reaction) {
-    if (!id || reacting) return;
+  const {
+    data: reactionData,
+    isLoading: isReactionLoading,
+    error: reactionError,
+  } = useQuery<ReactionData, Error>({
+    queryKey: ['reactions', bookId],
+    queryFn: () => fetchReactionData(bookId),
+    enabled: !!bookId,
+  });
+
+  async function toggle(reaction: 'like' | 'dislike') {
+    if (!id || reacting || !reactionData) return;
     setReacting(true);
 
-    const prev = myReaction;
-    if (prev === reaction) {
-      if (reaction === 'like') setLikes((v) => Math.max(0, v - 1));
-      else setDislikes((v) => Math.max(0, v - 1));
-      setMyReaction(null);
-    } else if (prev == null) {
-      if (reaction === 'like') setLikes((v) => v + 1);
-      else setDislikes((v) => v + 1);
-      setMyReaction(reaction);
-    } else {
-      if (prev === 'like') {
-        setLikes((v) => Math.max(0, v - 1));
-        setDislikes((v) => v + 1);
-      } else {
-        setDislikes((v) => Math.max(0, v - 1));
-        setLikes((v) => v + 1);
-      }
-      setMyReaction(reaction);
-    }
-
-    const res = await fetch(`/api/book/${encodeURIComponent(id)}/reaction`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reaction }),
-    });
-
-    if (!res.ok) {
-      const agg = await fetch(`/api/book/${encodeURIComponent(id)}/reaction`, {
-        cache: 'no-store',
+    try {
+      const res = await fetch(`/api/book/${encodeURIComponent(id)}/reaction`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reaction }),
       });
-      if (agg.ok) {
-        const j = await agg.json();
-        setLikes(j.likes ?? 0);
-        setDislikes(j.dislikes ?? 0);
-        setMyReaction(j.myReaction ?? null);
+
+      if (!res.ok) {
+        throw new Error('Failed to update reaction');
       }
+      // 성공 시 캐시 무효화 -> 자동 refetch
+      queryClient.invalidateQueries({ queryKey: ['reactions', bookId] });
+    } catch (error) {
+      console.error('Error toggling reaction:', error);
+      queryClient.invalidateQueries({ queryKey: ['reactions', bookId] });
+    } finally {
+      setReacting(false);
     }
-    setReacting(false);
   }
 
   return (
@@ -104,35 +99,48 @@ export default function BookDetailClient({
       </div>
 
       <div className="px-6 text-sm pt-4 flex pb-10 border-b border-[#DBDBDB]">
-        <button
-          onClick={() => toggle('like')}
-          disabled={reacting}
-          className="inline-flex items-center px-5 py-1 bg-gray-100 rounded-full text-sm mr-2"
-        >
-          <ThumbsUp
-            className={
-              myReaction === 'like'
-                ? 'w-4 text-black-600 [&_*]:fill-current'
-                : 'w-4 text-gray-600 opacity-60'
-            }
-          />
-          &nbsp; |<span className="ml-2">{likes}</span>
-        </button>
+        {isReactionLoading && (
+          <div className="text-gray-500 text-xs">좋아요 정보 로딩 중...</div>
+        )}
+        {reactionError && (
+          <div className="text-red-500 text-xs">
+            오류: {reactionError.message}
+          </div>
+        )}
 
-        <button
-          onClick={() => toggle('dislike')}
-          disabled={reacting}
-          className="inline-flex items-center px-5 py-1 bg-gray-100 rounded-full text-sm"
-        >
-          <ThumbsDown
-            className={
-              myReaction === 'dislike'
-                ? 'w-4 text-black-600 [&_*]:fill-current'
-                : 'w-4 text-gray-600 opacity-60'
-            }
-          />
-          &nbsp; |<span className="ml-2">{dislikes}</span>
-        </button>
+        {reactionData && !isReactionLoading && !reactionError && (
+          <>
+            <button
+              onClick={() => toggle('like')}
+              disabled={reacting}
+              className="inline-flex items-center px-5 py-1 bg-gray-100 rounded-full text-sm mr-2 disabled:opacity-50"
+            >
+              <ThumbsUp
+                className={
+                  reactionData.myReaction === 'like'
+                    ? 'w-4 text-blue-600 [&_*]:fill-current'
+                    : 'w-4 text-gray-600 opacity-60'
+                }
+              />
+              &nbsp; |<span className="ml-2">{reactionData.likes}</span>
+            </button>
+
+            <button
+              onClick={() => toggle('dislike')}
+              disabled={reacting}
+              className="inline-flex items-center px-5 py-1 bg-gray-100 rounded-full text-sm disabled:opacity-50"
+            >
+              <ThumbsDown
+                className={
+                  reactionData.myReaction === 'dislike'
+                    ? 'w-4 text-red-600 [&_*]:fill-current'
+                    : 'w-4 text-gray-600 opacity-60'
+                }
+              />
+              &nbsp; |<span className="ml-2">{reactionData.dislikes}</span>
+            </button>
+          </>
+        )}
       </div>
 
       <div className="px-6 py-10 text-sm">{book?.description}</div>
