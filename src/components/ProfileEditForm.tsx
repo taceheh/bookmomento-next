@@ -5,9 +5,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { profileSchema, ProfileFormData } from '@/lib/schemas';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-
+import { updateUserNickname } from '@/app/mypage/edit/action';
 interface ProfileEditFormProps {
   userId: string;
   initialNickname: string;
@@ -15,44 +15,40 @@ interface ProfileEditFormProps {
 }
 
 export default function ProfileEditForm({
-  userId,
   initialNickname,
   email,
 }: ProfileEditFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting, isDirty }, // isDirty: 수정 여부
+    formState: { errors, isDirty },
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      nickname: initialNickname,
-    },
+    defaultValues: { nickname: initialNickname },
   });
 
   const onValidSubmit = async (data: ProfileFormData) => {
     setServerError(null);
-    try {
-      const response = await fetch('/api/user', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname: data.nickname }),
-      });
 
-      if (!response.ok) {
-        const resData = await response.json();
-        throw new Error(resData.error || '닉네임 변경에 실패했습니다.');
+    const formData = new FormData();
+    formData.append('nickname', data.nickname);
+
+    startTransition(async () => {
+      const result = await updateUserNickname(formData);
+
+      if (result?.error) {
+        setServerError(result.error);
+      } else if (result?.success) {
+        alert(result.message || '닉네임이 성공적으로 변경되었습니다.');
+      } else {
+        // 예상치 못한 응답
+        setServerError('알 수 없는 오류가 발생했습니다.');
       }
-
-      // 성공 시
-      alert('닉네임이 성공적으로 변경되었습니다.');
-      router.refresh();
-    } catch (error: any) {
-      setServerError(error.message);
-    }
+    });
   };
 
   return (
@@ -96,8 +92,8 @@ export default function ProfileEditForm({
         <Button
           type="submit"
           size="full"
-          disabled={isSubmitting || !isDirty}
-          isLoading={isSubmitting}
+          disabled={isPending || !isDirty}
+          isLoading={isPending}
           loadingText="저장 중..."
         >
           회원정보 저장

@@ -1,10 +1,9 @@
 'use client';
 
 import { Book } from '@/types/book';
-import axios from 'axios';
 import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query'; // useQueryClient 추가
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface ReactionData {
   likes: number;
@@ -21,19 +20,40 @@ const fetchReactionData = async (bookId: string): Promise<ReactionData> => {
   return res.json();
 };
 
+const updateReaction = async ({
+  bookId,
+  reaction,
+}: {
+  bookId: string;
+  reaction: 'like' | 'dislike';
+}) => {
+  const res = await fetch(`/api/book/${encodeURIComponent(bookId)}/reaction`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reaction }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to update reaction');
+  }
+  return;
+};
+
 interface BookDetailClientProps {
   bookId: string;
   initialBook: Book;
+}
+
+interface MutationContext {
+  previousReactionData?: ReactionData;
 }
 
 export default function BookDetailClient({
   bookId,
   initialBook,
 }: BookDetailClientProps) {
-  const id = bookId;
   const [book, setBook] = useState<Book | null>(initialBook);
-  const [reacting, setReacting] = useState(false);
-  const queryClient = useQueryClient(); // QueryClient 인스턴스 가져오기
+  const queryClient = useQueryClient();
 
   const {
     data: reactionData,
@@ -45,29 +65,71 @@ export default function BookDetailClient({
     enabled: !!bookId,
   });
 
-  async function toggle(reaction: 'like' | 'dislike') {
-    if (!id || reacting || !reactionData) return;
-    setReacting(true);
+  const { mutate: toggleReaction, isPending: isToggling } = useMutation<
+    void,
+    Error,
+    'like' | 'dislike',
+    MutationContext
+  >({
+    mutationFn: (reaction) => updateReaction({ bookId, reaction }),
+    onMutate: async (newReaction) => {
+      await queryClient.cancelQueries({ queryKey: ['reactions', bookId] });
+      const previousReactionData = queryClient.getQueryData<ReactionData>([
+        'reactions',
+        bookId,
+      ]);
 
-    try {
-      const res = await fetch(`/api/book/${encodeURIComponent(id)}/reaction`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reaction }),
-      });
+      queryClient.setQueryData<ReactionData>(
+        ['reactions', bookId],
+        (oldData) => {
+          if (!oldData) return undefined;
 
-      if (!res.ok) {
-        throw new Error('Failed to update reaction');
+          let nextLikes = oldData.likes;
+          let nextDislikes = oldData.dislikes;
+          let nextMyReaction: ReactionData['myReaction'] = oldData.myReaction;
+
+          if (oldData.myReaction === newReaction) {
+            nextMyReaction = null;
+            if (newReaction === 'like')
+              nextLikes = Math.max(0, oldData.likes - 1);
+            else nextDislikes = Math.max(0, oldData.dislikes - 1);
+          } else if (oldData.myReaction === null) {
+            nextMyReaction = newReaction;
+            if (newReaction === 'like') nextLikes = oldData.likes + 1;
+            else nextDislikes = oldData.dislikes + 1;
+          } else {
+            nextMyReaction = newReaction;
+            if (newReaction === 'like') {
+              nextLikes = oldData.likes + 1;
+              nextDislikes = Math.max(0, oldData.dislikes - 1);
+            } else {
+              nextLikes = Math.max(0, oldData.likes - 1);
+              nextDislikes = oldData.dislikes + 1;
+            }
+          }
+          return {
+            likes: nextLikes,
+            dislikes: nextDislikes,
+            myReaction: nextMyReaction,
+          };
+        },
+      );
+
+      return { previousReactionData };
+    },
+    onError: (err, newReaction, context) => {
+      console.error('Error toggling reaction (mutation):', err);
+      if (context?.previousReactionData) {
+        queryClient.setQueryData(
+          ['reactions', bookId],
+          context.previousReactionData,
+        );
       }
-      // 성공 시 캐시 무효화 -> 자동 refetch
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['reactions', bookId] });
-    } catch (error) {
-      console.error('Error toggling reaction:', error);
-      queryClient.invalidateQueries({ queryKey: ['reactions', bookId] });
-    } finally {
-      setReacting(false);
-    }
-  }
+    },
+  });
 
   return (
     <div>
@@ -111,8 +173,8 @@ export default function BookDetailClient({
         {reactionData && !isReactionLoading && !reactionError && (
           <>
             <button
-              onClick={() => toggle('like')}
-              disabled={reacting}
+              onClick={() => toggleReaction('like')}
+              disabled={isToggling}
               className="inline-flex items-center px-5 py-1 bg-gray-100 rounded-full text-sm mr-2 disabled:opacity-50"
             >
               <ThumbsUp
@@ -126,8 +188,8 @@ export default function BookDetailClient({
             </button>
 
             <button
-              onClick={() => toggle('dislike')}
-              disabled={reacting}
+              onClick={() => toggleReaction('dislike')}
+              disabled={isToggling}
               className="inline-flex items-center px-5 py-1 bg-gray-100 rounded-full text-sm disabled:opacity-50"
             >
               <ThumbsDown
