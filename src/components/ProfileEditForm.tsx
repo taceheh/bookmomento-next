@@ -7,9 +7,10 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/stores/authStore';
 import { updateUserNickname } from '@/app/mypage/edit/action';
+
 interface ProfileEditFormProps {
-  userId: string;
   initialNickname: string;
   email: string;
 }
@@ -21,6 +22,7 @@ export default function ProfileEditForm({
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { setUser, user: currentUser } = useAuthStore();
 
   const {
     register,
@@ -33,7 +35,6 @@ export default function ProfileEditForm({
 
   const onValidSubmit = async (data: ProfileFormData) => {
     setServerError(null);
-
     const formData = new FormData();
     formData.append('nickname', data.nickname);
 
@@ -43,9 +44,17 @@ export default function ProfileEditForm({
       if (result?.error) {
         setServerError(result.error);
       } else if (result?.success) {
+        if (currentUser) {
+          const updatedUser = {
+            ...currentUser,
+            nickname: data.nickname,
+          };
+          setUser(updatedUser);
+        }
+
         alert(result.message || '닉네임이 성공적으로 변경되었습니다.');
+        router.refresh(); // 서버 데이터 갱신도 함께 수행
       } else {
-        // 예상치 못한 응답
         setServerError('알 수 없는 오류가 발생했습니다.');
       }
     });
