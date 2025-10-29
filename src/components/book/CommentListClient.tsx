@@ -1,16 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { commentSchema, CommentFormData } from '@/lib/schemas';
-
 import { CommentItemType } from '@/types/comment';
-import axios from 'axios';
 import dayjs from 'dayjs';
 import { Edit, Trash2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
+import { useRouter } from 'next/navigation';
+import {
+  addComment,
+  editComment,
+  deleteComment,
+} from '@/app/book/[id]/actions';
 
 interface CommentListClientProps {
   bookId: string;
@@ -23,46 +26,45 @@ export default function CommentListClient({
   initialComments,
   initialCommentCount,
 }: CommentListClientProps) {
-  const id = bookId;
+  const router = useRouter();
   const [count, setCount] = useState(initialCommentCount);
   const [comments, setComments] = useState<CommentItemType[]>(initialComments);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isPendingAdd, startTransitionAdd] = useTransition();
 
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<CommentFormData>({
     resolver: zodResolver(commentSchema),
     defaultValues: { body: '' },
   });
 
-  const refreshComments = async () => {
-    const res = await fetch(
-      `/api/book/${encodeURIComponent(id)}/comments?parent_id=null`,
-    );
-    const data = await res.json();
-    setComments(data.items);
-    setCount(data.totalCount);
-  };
-
   const onValidSubmit = async (data: CommentFormData) => {
     setSubmitError(null);
-    try {
-      await axios.post(`/api/book/${encodeURIComponent(id)}/comments`, {
-        parent_id: null,
-        body: data.body,
-      });
-      reset(); // 폼 초기화
-      refreshComments(); // 목록 새로고침
-    } catch (error: any) {
-      console.error('댓글 작성 실패:', error);
-      setSubmitError(
-        error.response?.data?.error || '댓글 작성 중 오류가 발생했습니다.',
-      );
-    }
+    const formData = new FormData();
+    formData.append('body', data.body);
+
+    startTransitionAdd(async () => {
+      const result = await addComment(bookId, null, formData);
+      if (result?.error) {
+        setSubmitError(result.error);
+      } else if (result?.success) {
+        reset();
+        setCount((prev) => prev + 1);
+        router.refresh();
+      } else {
+        setSubmitError('알 수 없는 오류가 발생했습니다.');
+      }
+    });
   };
+
+  useEffect(() => {
+    setComments(initialComments);
+    setCount(initialCommentCount);
+  }, [initialComments, initialCommentCount]);
 
   return (
     <>
@@ -73,7 +75,7 @@ export default function CommentListClient({
           placeholder="리뷰를 입력하세요"
           className={`w-full h-20 border rounded-lg p-2 align-top pt-2 ${errors.body ? 'border-red-500' : 'border-gray-300'}`}
           {...register('body')}
-          disabled={isSubmitting}
+          disabled={isPendingAdd}
         />
         {errors.body && (
           <p className="text-sm text-red-600">{errors.body.message}</p>
@@ -83,18 +85,14 @@ export default function CommentListClient({
           type="submit"
           variant="outline"
           size="full"
-          isLoading={isSubmitting}
+          isLoading={isPendingAdd}
           loadingText="작성 중..."
         >
           리뷰 작성
         </Button>
       </form>
 
-      <CommentList
-        bookIsbn={id}
-        roots={comments}
-        onCommentChange={refreshComments}
-      />
+      <CommentList bookIsbn={bookId} roots={comments} />
     </>
   );
 }
@@ -102,22 +100,15 @@ export default function CommentListClient({
 function CommentList({
   bookIsbn,
   roots,
-  onCommentChange, // 루트 댓글 변경 콜백
 }: {
   bookIsbn: string;
   roots: CommentItemType[];
-  onCommentChange: () => void;
 }) {
   return (
     <ul className="mt-6 space-y-6">
       {roots.map((c) => (
         <li key={c.id}>
-          <CommentItem
-            bookIsbn={bookIsbn}
-            comment={c}
-            depth={0}
-            onCommentChange={onCommentChange}
-          />
+          <CommentItem bookIsbn={bookIsbn} comment={c} depth={0} />
         </li>
       ))}
     </ul>
@@ -128,21 +119,25 @@ function CommentItem({
   bookIsbn,
   comment,
   depth,
-  onCommentChange, // 루트 댓글 변경 콜백
 }: {
   bookIsbn: string;
   comment: CommentItemType;
   depth: number;
-  onCommentChange: () => void;
 }) {
+  const router = useRouter();
   const [openReplies, setOpenReplies] = useState(false);
   const [loading, setLoading] = useState(false);
   const [replyOpen, setReplyOpen] = useState(false);
   const [replies, setReplies] = useState<CommentItemType[] | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [isPendingReply, startTransitionReply] = useTransition();
+  const [isPendingEdit, startTransitionEdit] = useTransition();
+  const [isPendingDelete, startTransitionDelete] = useTransition();
+
   const [replySubmitError, setReplySubmitError] = useState<string | null>(null);
   const [editSubmitError, setEditSubmitError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const canReply = depth < 1;
 
@@ -150,7 +145,7 @@ function CommentItem({
     register: registerReply,
     handleSubmit: handleSubmitReply,
     reset: resetReply,
-    formState: { errors: errorsReply, isSubmitting: isSubmittingReply },
+    formState: { errors: errorsReply },
   } = useForm<CommentFormData>({
     resolver: zodResolver(commentSchema),
     defaultValues: { body: '' },
@@ -160,20 +155,30 @@ function CommentItem({
     register: registerEdit,
     handleSubmit: handleSubmitEdit,
     reset: resetEdit,
-    formState: { errors: errorsEdit, isSubmitting: isSubmittingEdit },
+    formState: { errors: errorsEdit },
   } = useForm<CommentFormData>({
     resolver: zodResolver(commentSchema),
-    defaultValues: { body: comment.body }, // 초기값은 현재 댓글 내용
+    defaultValues: { body: comment.body },
   });
 
   const loadReplies = async () => {
     setLoading(true);
-    const res = await fetch(
-      `/api/book/${encodeURIComponent(bookIsbn)}/comments?parent_id=${comment.id}`,
-    );
-    const j = await res.json();
-    setReplies(j.items ?? []);
-    setLoading(false);
+    try {
+      const res = await fetch(
+        `/api/book/${encodeURIComponent(bookIsbn)}/comments?parent_id=${comment.id}`,
+        { cache: 'no-store' },
+      );
+      if (!res.ok) {
+        throw new Error(`Failed to fetch replies: ${res.status}`);
+      }
+      const j = await res.json();
+      setReplies(j.items ?? []);
+    } catch (error) {
+      console.error('Error loading replies:', error);
+      setReplies([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleReplies = async () => {
@@ -187,71 +192,53 @@ function CommentItem({
 
   const onValidSubmitReply = async (data: CommentFormData) => {
     setReplySubmitError(null);
-    try {
-      await axios.post(`/api/book/${encodeURIComponent(bookIsbn)}/comments`, {
-        parent_id: comment.id,
-        body: data.body,
-      });
-      resetReply();
-      await loadReplies(); // 답글 목록 새로고침
-      setOpenReplies(true);
-      setReplyOpen(false);
-    } catch (error: any) {
-      console.error('답글 작성 실패:', error);
-      setReplySubmitError(
-        error.response?.data?.error || '답글 작성 중 오류가 발생했습니다.',
-      );
-    }
+    const formData = new FormData();
+    formData.append('body', data.body);
+
+    startTransitionReply(async () => {
+      const result = await addComment(bookIsbn, comment.id, formData);
+      if (result?.error) {
+        setReplySubmitError(result.error);
+      } else if (result?.success) {
+        resetReply();
+        setReplyOpen(false);
+        router.refresh();
+        if (!openReplies) await loadReplies();
+        setOpenReplies(true);
+      } else {
+        setReplySubmitError('알 수 없는 오류가 발생했습니다.');
+      }
+    });
   };
 
   const onValidSubmitEdit = async (data: CommentFormData) => {
     setEditSubmitError(null);
-    try {
-      await axios.patch(
-        `/api/book/${encodeURIComponent(bookIsbn)}/comments?book_isbn=${encodeURIComponent(bookIsbn)}&comment_id=${comment.id}`,
-        { body: data.body },
-      );
-      setIsEditing(false);
+    const formData = new FormData();
+    formData.append('body', data.body);
 
-      if (comment.parent_id === null) {
-        onCommentChange();
+    startTransitionEdit(async () => {
+      const result = await editComment(bookIsbn, comment.id, formData);
+      if (result?.error) {
+        setEditSubmitError(result.error);
+      } else if (result?.success) {
+        setIsEditing(false);
+        router.refresh();
       } else {
-        console.warn('대댓글 수정 후 리프레시 로직 필요');
-        handleRefreshReplies();
+        setEditSubmitError('알 수 없는 오류가 발생했습니다.');
       }
-    } catch (error: any) {
-      console.error('댓글 수정 실패:', error);
-      setEditSubmitError(
-        error.response?.data?.error || '댓글 수정 중 오류가 발생했습니다.',
-      );
-    }
+    });
   };
 
   const handleDelete = async () => {
-    if (isDeleting) return;
-
-    setIsDeleting(true);
-    try {
-      await axios.delete(
-        `/api/book/${encodeURIComponent(bookIsbn)}/comments?book_isbn=${encodeURIComponent(bookIsbn)}&comment_id=${comment.id}`,
-      );
-      if (comment.parent_id === null) {
-        onCommentChange();
-      } else {
-        console.warn('대댓글 삭제 후 리프레시 로직 필요');
-        handleRefreshReplies(); // 임시
+    setDeleteError(null);
+    startTransitionDelete(async () => {
+      const result = await deleteComment(bookIsbn, comment.id);
+      if (result?.error) {
+        setDeleteError(result.error);
+      } else if (result?.success) {
+        router.refresh();
       }
-    } catch (error: any) {
-      console.error('댓글 삭제 실패:', error);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleRefreshReplies = () => {
-    if (replies !== null) {
-      loadReplies();
-    }
+    });
   };
 
   return (
@@ -270,7 +257,7 @@ function CommentItem({
             className={`w-full rounded-lg border p-2 text-sm ${errorsEdit.body ? 'border-red-500' : 'border-gray-300'}`}
             rows={3}
             {...registerEdit('body')}
-            disabled={isSubmittingEdit}
+            disabled={isPendingEdit}
           />
           {errorsEdit.body && (
             <p className="text-xs text-red-600">{errorsEdit.body.message}</p>
@@ -282,7 +269,7 @@ function CommentItem({
             <Button
               type="submit"
               variant="primary"
-              isLoading={isSubmittingEdit}
+              isLoading={isPendingEdit}
               loadingText="수정 중..."
             >
               수정 완료
@@ -291,10 +278,10 @@ function CommentItem({
               type="button"
               onClick={() => {
                 setIsEditing(false);
-                resetEdit({ body: comment.body }); // 취소 시 원래 내용으로 리셋
+                resetEdit({ body: comment.body });
               }}
               variant="secondary"
-              disabled={isSubmittingEdit}
+              disabled={isPendingEdit}
             >
               취소
             </Button>
@@ -327,30 +314,31 @@ function CommentItem({
         >
           {openReplies ? '답글 접기' : '답글 보기'}
         </button>
-
-        {!comment.deleted_at &&
-          !isEditing && ( // 수정 중일 때는 버튼 숨김
-            <div className="flex gap-2 ml-auto">
-              <button
-                onClick={() => {
-                  setIsEditing(true);
-                  resetEdit({ body: comment.body });
-                }}
-                className="flex items-center gap-1 text-gray-500 hover:text-blue-600 text-xs"
-              >
-                <Edit className="w-3 h-3" /> 수정
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="flex items-center gap-1 text-gray-500 hover:text-red-600 text-xs disabled:opacity-50"
-              >
-                <Trash2 className="w-3 h-3" />{' '}
-                {isDeleting ? '삭제 중...' : '삭제'}
-              </button>
-            </div>
-          )}
+        {!comment.deleted_at && !isEditing && (
+          <div className="flex gap-2 ml-auto">
+            <button
+              onClick={() => {
+                setIsEditing(true);
+                resetEdit({ body: comment.body });
+              }}
+              className="flex items-center gap-1 text-gray-500 hover:text-blue-600 text-xs"
+            >
+              <Edit className="w-3 h-3" /> 수정
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={isPendingDelete}
+              className="flex items-center gap-1 text-gray-500 hover:text-red-600 text-xs disabled:opacity-50"
+            >
+              <Trash2 className="w-3 h-3" />{' '}
+              {isPendingDelete ? '삭제 중...' : '삭제'}
+            </button>
+          </div>
+        )}
       </div>
+      {deleteError && (
+        <p className="text-xs text-red-600 mt-1">{deleteError}</p>
+      )}
 
       {replyOpen && canReply && (
         <form
@@ -362,7 +350,7 @@ function CommentItem({
             rows={3}
             placeholder="답글을 입력하세요"
             {...registerReply('body')}
-            disabled={isSubmittingReply}
+            disabled={isPendingReply}
           />
           {errorsReply.body && (
             <p className="text-xs text-red-600">{errorsReply.body.message}</p>
@@ -374,7 +362,7 @@ function CommentItem({
             <Button
               type="submit"
               variant="primary"
-              isLoading={isSubmittingReply}
+              isLoading={isPendingReply}
               loadingText="등록 중..."
             >
               등록
@@ -383,10 +371,10 @@ function CommentItem({
               type="button"
               onClick={() => {
                 setReplyOpen(false);
-                resetReply(); // 취소 시 폼 리셋
+                resetReply();
               }}
               variant="secondary"
-              disabled={isSubmittingReply}
+              disabled={isPendingReply}
             >
               취소
             </Button>
@@ -405,7 +393,7 @@ function CommentItem({
                 key={r.id}
                 bookIsbn={bookIsbn}
                 reply={r}
-                onReplyChange={handleRefreshReplies}
+                refreshReplies={loadReplies} // loadReplies 함수 전달
               />
             ))}
         </div>
@@ -417,57 +405,59 @@ function CommentItem({
 function ReplyItem({
   bookIsbn,
   reply,
-  onReplyChange,
+  refreshReplies, // refreshReplies prop 추가
 }: {
   bookIsbn: string;
   reply: CommentItemType;
-  onReplyChange: () => void;
+  refreshReplies: () => Promise<void>; // prop 타입 정의
 }) {
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isPendingEdit, startTransitionEdit] = useTransition();
+  const [isPendingDelete, startTransitionDelete] = useTransition();
   const [editSubmitError, setEditSubmitError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const {
     register: registerEdit,
     handleSubmit: handleSubmitEdit,
     reset: resetEdit,
-    formState: { errors: errorsEdit, isSubmitting: isSubmittingEdit },
+    formState: { errors: errorsEdit },
   } = useForm<CommentFormData>({
     resolver: zodResolver(commentSchema),
-    defaultValues: { body: reply.body }, // 초기값은 현재 답글 내용
+    defaultValues: { body: reply.body },
   });
 
   const onValidSubmitEdit = async (data: CommentFormData) => {
     setEditSubmitError(null);
-    try {
-      await axios.patch(
-        `/api/book/${encodeURIComponent(bookIsbn)}/comments?book_isbn=${encodeURIComponent(bookIsbn)}&comment_id=${reply.id}`,
-        { body: data.body },
-      );
-      setIsEditing(false);
-      onReplyChange();
-    } catch (error: any) {
-      console.error('답글 수정 실패:', error);
-      setEditSubmitError(
-        error.response?.data?.error || '답글 수정 중 오류가 발생했습니다.',
-      );
-    }
+    const formData = new FormData();
+    formData.append('body', data.body);
+
+    startTransitionEdit(async () => {
+      const result = await editComment(bookIsbn, reply.id, formData);
+      if (result?.error) {
+        setEditSubmitError(result.error);
+      } else if (result?.success) {
+        setIsEditing(false);
+        router.refresh();
+        await refreshReplies(); // 클라이언트 답글 목록 즉시 갱신
+      } else {
+        setEditSubmitError('알 수 없는 오류가 발생했습니다.');
+      }
+    });
   };
 
   const handleDelete = async () => {
-    if (isDeleting) return;
-
-    setIsDeleting(true);
-    try {
-      await axios.delete(
-        `/api/book/${encodeURIComponent(bookIsbn)}/comments?book_isbn=${encodeURIComponent(bookIsbn)}&comment_id=${reply.id}`,
-      );
-      onReplyChange();
-    } catch (error: any) {
-      console.error('답글 삭제 실패:', error);
-    } finally {
-      setIsDeleting(false);
-    }
+    setDeleteError(null);
+    startTransitionDelete(async () => {
+      const result = await deleteComment(bookIsbn, reply.id);
+      if (result?.error) {
+        setDeleteError(result.error);
+      } else if (result?.success) {
+        router.refresh();
+        await refreshReplies(); // 클라이언트 답글 목록 즉시 갱신
+      }
+    });
   };
 
   return (
@@ -486,7 +476,7 @@ function ReplyItem({
             className={`w-full rounded-lg border p-2 text-sm bg-white ${errorsEdit.body ? 'border-red-500' : 'border-gray-300'}`}
             rows={3}
             {...registerEdit('body')}
-            disabled={isSubmittingEdit}
+            disabled={isPendingEdit}
           />
           {errorsEdit.body && (
             <p className="text-xs text-red-600">{errorsEdit.body.message}</p>
@@ -498,7 +488,7 @@ function ReplyItem({
             <Button
               type="submit"
               variant="primary"
-              isLoading={isSubmittingEdit}
+              isLoading={isPendingEdit}
               loadingText="수정 중..."
             >
               수정 완료
@@ -507,10 +497,10 @@ function ReplyItem({
               type="button"
               onClick={() => {
                 setIsEditing(false);
-                resetEdit({ body: reply.body }); // 취소 시 원래 내용으로 리셋
+                resetEdit({ body: reply.body });
               }}
               variant="secondary"
-              disabled={isSubmittingEdit}
+              disabled={isPendingEdit}
             >
               취소
             </Button>
@@ -525,29 +515,31 @@ function ReplyItem({
           )}
         </div>
       )}
+      {deleteError && (
+        <p className="text-xs text-red-600 mt-1">{deleteError}</p>
+      )}
 
-      {!isEditing &&
-        !reply.deleted_at && ( // 수정 중, 삭제된 댓글 제외
-          <div className="mt-2 flex gap-2 justify-end">
-            <button
-              onClick={() => {
-                setIsEditing(true);
-                resetEdit({ body: reply.body });
-              }}
-              className="flex items-center gap-1 text-gray-500 hover:text-blue-600 text-xs"
-            >
-              <Edit className="w-3 h-3" /> 수정
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="flex items-center gap-1 text-gray-500 hover:text-red-600 text-xs disabled:opacity-50"
-            >
-              <Trash2 className="w-3 h-3" />{' '}
-              {isDeleting ? '삭제 중...' : '삭제'}
-            </button>
-          </div>
-        )}
+      {!isEditing && !reply.deleted_at && (
+        <div className="mt-2 flex gap-2 justify-end">
+          <button
+            onClick={() => {
+              setIsEditing(true);
+              resetEdit({ body: reply.body });
+            }}
+            className="flex items-center gap-1 text-gray-500 hover:text-blue-600 text-xs"
+          >
+            <Edit className="w-3 h-3" /> 수정
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={isPendingDelete}
+            className="flex items-center gap-1 text-gray-500 hover:text-red-600 text-xs disabled:opacity-50"
+          >
+            <Trash2 className="w-3 h-3" />{' '}
+            {isPendingDelete ? '삭제 중...' : '삭제'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
