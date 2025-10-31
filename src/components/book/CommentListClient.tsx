@@ -13,7 +13,7 @@ import {
   addComment,
   editComment,
   deleteComment,
-} from '@/app/book/[id]/actions';
+} from '@/app/(main)/book/[id]/actions';
 
 interface CommentListClientProps {
   bookId: string;

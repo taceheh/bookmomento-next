@@ -8,7 +8,7 @@ import Input from '@/components/ui/Input';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
-import { updateUserNickname } from '@/app/mypage/edit/action';
+import { updateUserNickname } from '@/app/(main)/mypage/edit/action';
 
 interface ProfileEditFormProps {
   initialNickname: string;
