@@ -1,6 +1,5 @@
 'use server';
 
-import { z } from 'zod';
 import { commentSchema } from '@/lib/schemas';
 import { prisma } from '@/lib/prisma';
 import { supabaseServer } from '@/lib/supabaseServer';

@@ -14,7 +14,7 @@ export async function GET(req: Request) {
       'https://www.aladin.co.kr/ttb/api/ItemSearch.aspx',
       {
         params: {
-          ttbkey: process.env.NEXT_PUBLIC_ALADIN_API_KEY,
+          ttbkey: process.env.ALADIN_API_KEY,
           Query: q,
           version: '20131101',
           SearchTarget: 'Book',

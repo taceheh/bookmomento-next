@@ -5,55 +5,47 @@ import Section from '@/components/Section';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
-async function getBestSellers(): Promise<Book[]> {
-  const res = await fetch(`${BASE_URL}/api/book/bestseller`, {
-    cache: 'no-store',
-  });
-  if (!res.ok) return [];
-  return res.json();
+interface RankedBookItem {
+  isbn: string;
+  comment_count?: number;
+  like_count?: number;
+  book: Book | null;
+  error?: string;
 }
 
-async function getNewBooks(): Promise<Book[]> {
-  const res = await fetch(`${BASE_URL}/api/book/brendnew`, {
+async function getBooks(
+  sort: 'bestseller' | 'new' | 'comments' | 'likes',
+): Promise<Book[]> {
+  const res = await fetch(`${BASE_URL}/api/book?sort=${sort}`, {
     cache: 'no-store',
   });
-  if (!res.ok) return [];
-  return res.json();
-}
 
-async function getReviewRanking(): Promise<Book[]> {
-  const res = await fetch(`${BASE_URL}/api/book/most-commented`, {
-    cache: 'no-store',
-  });
   if (!res.ok) return [];
-  const { items } = await res.json();
-  return items
-    .filter((it: any) => it.book)
-    .map((it: any) => ({
-      isbn: it.isbn,
-      title: it.book.title,
-      cover: it.book.cover,
-    }));
-}
 
-async function getLikeRanking(): Promise<Book[]> {
-  const res = await fetch(`${BASE_URL}/api/book/most-liked`, {
-    cache: 'no-store',
-  });
-  if (!res.ok) return [];
-  const { items } = await res.json();
-  return items
-    .filter((it: any) => it.book)
-    .map((it: any) => ({
-      isbn: it.isbn,
-      title: it.book.title,
-      cover: it.book.cover,
-    }));
+  const data = await res.json();
+  const items = data.items || [];
+
+  if (sort === 'bestseller' || sort === 'new') {
+    return items as Book[];
+  }
+
+  if (sort === 'comments' || sort === 'likes') {
+    return (items as RankedBookItem[])
+      .filter((item) => item.book)
+      .map((item) => item.book as Book);
+  }
+
+  return [];
 }
 
 export default async function HomePage() {
   const [bestSellers, newBooks, reviewRanking, likeRanking] = await Promise.all(
-    [getBestSellers(), getNewBooks(), getReviewRanking(), getLikeRanking()],
+    [
+      getBooks('bestseller'),
+      getBooks('new'),
+      getBooks('comments'),
+      getBooks('likes'),
+    ],
   );
 
   return (

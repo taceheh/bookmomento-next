@@ -1,7 +1,5 @@
 'use client';
 
-import { supabase } from '@/lib/supabase';
-import { supabaseServer } from '@/lib/supabaseServer';
 import { Bell, Search, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
