@@ -16,7 +16,6 @@ export default async function ProfileEditPage() {
           </h1>
 
           <ProfileEditForm
-            userId={user.id}
             initialNickname={userData?.nickname || ''}
             email={userData?.email || user.email || ''}
           />
