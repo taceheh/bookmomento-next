@@ -1,6 +1,9 @@
 import { Book } from '@/types/book';
 import Link from 'next/link';
 import SearchInput from '@/components/SearchInput';
+import Image from 'next/image';
+
+export const dynamic = 'force-dynamic';
 
 async function searchBooks(q: string): Promise<Book[]> {
   if (!q) return [];
@@ -37,7 +40,15 @@ export default async function Page({
         {books?.map((book) => (
           <Link key={book.isbn} href={`/book/${book.isbn}`}>
             <div className="flex h-40 text-sm bottom-0.5 border-b-[0.4mm] border-[#DBDBDB] mb-6">
-              <img className="h-35 w-30 mr-6" src={book.cover} />
+              <Image
+                src={book.cover}
+                alt={book.title}
+                width={100}
+                height={140}
+                className="h-35 w-30 mr-6 "
+                unoptimized
+              />
+              {/* <img className="h-35 w-30 mr-6" src={book.cover} /> */}
               <div>
                 <div className="font-semibold mb-4">{book.title}</div>
                 <div className=" mb-2">{book.author}</div>

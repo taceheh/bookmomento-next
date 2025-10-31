@@ -4,6 +4,7 @@ import { Book } from '@/types/book';
 import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import Image from 'next/image';
 
 interface ReactionData {
   likes: number;
@@ -139,17 +140,29 @@ export default function BookDetailClient({
       </div>
 
       <div className="relative w-full h-96 overflow-hidden">
-        <img
+        {/* <img
           src={book?.cover}
           alt="cover"
           className="absolute inset-0 w-full h-full object-cover blur-md scale-110"
+        /> */}
+
+        <Image
+          src={book?.cover ?? ''}
+          alt="cover"
+          fill
+          className=" object-cover blur-md scale-110"
+          priority
+          unoptimized
         />
         <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10" />
         <div className="relative z-20 flex justify-center items-center h-full">
-          <img
-            src={book?.cover}
+          <Image
+            src={book?.cover ?? ''}
             alt="cover"
-            className="h-96 shadow-xl rounded-md"
+            width={100}
+            height={140}
+            className="h-96 w-68 shadow-xl"
+            unoptimized
           />
         </div>
       </div>
