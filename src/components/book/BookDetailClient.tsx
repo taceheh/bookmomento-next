@@ -43,6 +43,7 @@ const updateReaction = async ({
 interface BookDetailClientProps {
   bookId: string;
   initialBook: Book;
+  initialReactionData: ReactionData;
 }
 
 interface MutationContext {
@@ -52,6 +53,7 @@ interface MutationContext {
 export default function BookDetailClient({
   bookId,
   initialBook,
+  initialReactionData,
 }: BookDetailClientProps) {
   const [book, setBook] = useState<Book | null>(initialBook);
   const queryClient = useQueryClient();
@@ -63,6 +65,7 @@ export default function BookDetailClient({
   } = useQuery<ReactionData, Error>({
     queryKey: ['reactions', bookId],
     queryFn: () => fetchReactionData(bookId),
+    initialData: initialReactionData,
     enabled: !!bookId,
   });
 
