@@ -1,4 +1,6 @@
-# <img width="66" height="66" alt="Group 10" src="https://github.com/user-attachments/assets/fdc0f6db-0ecd-41e9-828c-c475fd2058db" />
+# <img width="100" height="100" alt="Group 10" src="https://github.com/user-attachments/assets/fdc0f6db-0ecd-41e9-828c-c475fd2058db" />
+<img width="1600" height="960" alt="Group 13720 (1)" src="https://github.com/user-attachments/assets/eeb290df-fff4-467c-8861-df6f4e9631ab" />
+
 
 나의 독서 기록과 생각을 공유하고 토론하는 북 커뮤니티 플랫폼
 
