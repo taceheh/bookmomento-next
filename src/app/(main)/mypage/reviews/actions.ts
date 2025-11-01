@@ -1,11 +1,10 @@
-'use server'; // 서버 액션 파일임을 명시
+'use server';
 
 import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
 
 import { prisma } from '@/lib/prisma';
-import { supabaseServer } from '@/lib/supabaseServer';
 import { reviewSchema } from '@/lib/schemas';
+import { supabaseServer } from '@/lib/supabaseServer';
 
 export async function addReview(formData: FormData) {
   const supabase = await supabaseServer();
@@ -41,15 +40,12 @@ export async function addReview(formData: FormData) {
       },
     });
 
-    // 캐시 무효화 (마이페이지 새로고침)
     revalidatePath('/mypage/read-books');
     return { success: true, message: '기록이 추가되었습니다.' };
   } catch (e: any) {
-    // P2002: Unique 제약 조건 위반 (이미 리뷰를 작성한 책)
     if (e.code === 'P2002') {
       return { error: '이미 리뷰를 작성한 책입니다.' };
     }
-    // 그 외 DB 오류
     console.error(e);
     return { error: '데이터베이스 저장 중 오류가 발생했습니다.' };
   }
@@ -65,7 +61,6 @@ export async function getMyReviews() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    // 서버 컴포넌트에서 호출될 것이므로 에러를 throw 하거나 빈 배열을 반환합니다.
     return [];
   }
 
@@ -78,7 +73,6 @@ export async function getMyReviews() {
       orderBy: {
         created_at: 'desc',
       },
-      // (참고) 'schema.prisma'에 'books' 관계가 설정되어 있어야 함
       include: {
         books: {
           select: {
