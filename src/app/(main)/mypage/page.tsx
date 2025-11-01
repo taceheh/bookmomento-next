@@ -35,6 +35,14 @@ export default async function Page() {
             내가 좋아요한 책
           </div>
         </Link>
+        <Link href="/mypage/reviews">
+          <div
+            className="border-b border-[#DBDBDB] flex h-12
+         items-center text-sm"
+          >
+            내가 읽은 책 기록
+          </div>
+        </Link>
       </div>
       <div>
         <div
