@@ -1,12 +1,15 @@
 import axios from 'axios';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get('q');
 
+  const page = searchParams.get('page') || '1';
+  const count = searchParams.get('count') || '10';
+
   if (!q) {
-    return new NextResponse('Missing q', { status: 400 });
+    return new NextResponse('Missing query parameter: q', { status: 400 });
   }
 
   try {
@@ -18,17 +21,23 @@ export async function GET(req: Request) {
           Query: q,
           version: '20131101',
           SearchTarget: 'Book',
-          MaxResults: '5',
           Output: 'JS',
           Cover: 'Big',
-          itemsPerPage: '5',
-          totalResults: '5',
+
+          Start: page, // 페이지 번호
+          MaxResults: count, // 페이지당 결과 수 (10개)
         },
       },
     );
-    return NextResponse.json(response.data.item);
+
+    return NextResponse.json({
+      items: response.data.item || [], // 검색 결과 배열
+      totalResults: response.data.totalResults || 0,
+      itemsPerPage: response.data.itemsPerPage || 0,
+      startIndex: response.data.startIndex || 1,
+    });
   } catch (error) {
-    console.error('알라딘 상세보기 API 오류 : ', error);
+    console.error('알라딘 ItemSearch API 오류 : ', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
