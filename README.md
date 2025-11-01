@@ -1,8 +1,9 @@
-# ![chaekdam_logo](https://via.placeholder.com/400x100?text=Chaekdam)
+# <img width="66" height="66" alt="Group 10" src="https://github.com/user-attachments/assets/fdc0f6db-0ecd-41e9-828c-c475fd2058db" />
 
 나의 독서 기록과 생각을 공유하고 토론하는 북 커뮤니티 플랫폼
 
 <br/><br/>
+
 
 ## ⚙️ 기술 스택
 
