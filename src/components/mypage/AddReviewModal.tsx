@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useModalStore } from '@/stores/modalStore';
 import { reviewSchema, type ReviewFormData } from '@/lib/schemas';
 import { addReview } from '@/app/(main)/mypage/reviews/actions';
+import SearchInput from '../SearchInput';
 
 type Book = {
   isbn13: string;
@@ -83,7 +84,8 @@ export function AddReviewModal() {
               <strong className="text-lg">1. 책 이름으로 검색</strong>
               {/* <SearchInput searchType="title" onBookSelect={handleBookSelect} /> */}
               <p className="text-sm text-gray-500">
-                (SearchInput 컴포넌트를 여기에 연결하세요)
+                <SearchInput initialQuery={selectedBook ?? ''} />
+                {/* (SearchInput 컴포넌트를 여기에 연결하세요) */}
               </p>
               <input
                 placeholder="임시 책 제목 검색"
