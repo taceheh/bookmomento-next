@@ -1,8 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { getMyReviews } from './actions';
-import { AddReviewButton } from '@/components/mypage/AddReviewButton';
-import { AddReviewModal } from '@/components/mypage/AddReviewModal';
 
 export default async function ReviewsPage() {
   const myReviews = await getMyReviews();
@@ -11,10 +9,10 @@ export default async function ReviewsPage() {
     <section className="w-full max-w-4xl mx-auto p-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-semibold">내가 읽은 책 기록</h2>
-        <AddReviewButton />
+        <Link href="/mypage/reviews/new" className="...">
+          + 읽은 책 기록하기
+        </Link>
       </div>
-
-      <AddReviewModal />
 
       <hr className="my-6" />
 

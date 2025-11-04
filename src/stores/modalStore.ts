@@ -1,13 +1,15 @@
+'use client';
+
 import { create } from 'zustand';
 
-type ModalState = {
-  isAddReviewModalOpen: boolean;
-  openAddReviewModal: () => void;
-  closeAddReviewModal: () => void;
+type ReviewModalState = {
+  isBookSearchModalOpen: boolean;
+  openBookSearchModal: () => void;
+  closeBookSearchModal: () => void;
 };
 
-export const useModalStore = create<ModalState>((set) => ({
-  isAddReviewModalOpen: false,
-  openAddReviewModal: () => set({ isAddReviewModalOpen: true }),
-  closeAddReviewModal: () => set({ isAddReviewModalOpen: false }),
+export const useReviewModalStore = create<ReviewModalState>((set) => ({
+  isBookSearchModalOpen: false,
+  openBookSearchModal: () => set({ isBookSearchModalOpen: true }),
+  closeBookSearchModal: () => set({ isBookSearchModalOpen: false }),
 }));
