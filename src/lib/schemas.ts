@@ -38,6 +38,10 @@ export const reviewSchema = z.object({
     .string()
     .min(10, '소감은 10자 이상 입력해주세요.')
     .max(5000, '소감은 5,000자 이내로 작성해주세요.'),
+
+  book_title: z.string().min(1, '책 제목이 필요합니다.'),
+  book_author: z.string().min(1, '저자 정보가 필요합니다.'),
+  book_cover: z.string().optional(),
 });
 
 export type ReviewFormData = z.infer<typeof reviewSchema>;
