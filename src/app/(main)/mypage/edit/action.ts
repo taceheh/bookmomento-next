@@ -31,7 +31,7 @@ export async function updateUserNickname(formData: FormData) {
   const { nickname } = validationResult.data;
 
   try {
-    await prisma.users.update({
+    await prisma.public_users.update({
       where: { id: user.id },
       data: { nickname: nickname },
     });
