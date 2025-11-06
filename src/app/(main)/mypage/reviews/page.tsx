@@ -9,7 +9,10 @@ export default async function ReviewsPage() {
     <section className="w-full max-w-4xl mx-auto p-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-semibold">내가 읽은 책 기록</h2>
-        <Link href="/mypage/reviews/new" className="...">
+        <Link
+          href="/mypage/reviews/new"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+        >
           + 읽은 책 기록하기
         </Link>
       </div>
@@ -29,26 +32,24 @@ export default async function ReviewsPage() {
               key={review.id}
               className="flex gap-4 p-4 border rounded-lg shadow-sm"
             >
-              {review.books && (
-                <Link href={`/book/${review.books.isbn13}`}>
-                  <Image
-                    src={review.books.cover || '/default-cover.png'}
-                    alt={review.books.title}
-                    width={80}
-                    height={120}
-                    className="rounded object-cover flex-shrink-0"
-                  />
-                </Link>
-              )}
+              <Link href={`/book/${review.book_isbn}`}>
+                <Image
+                  src={review.book_cover || '/default-cover.png'}
+                  alt={review.book_title}
+                  width={80}
+                  height={120}
+                  className="rounded object-cover flex-shrink-0"
+                  unoptimized
+                />
+              </Link>
               <div className="flex flex-col">
-                {review.books && (
-                  <Link
-                    href={`/book/${review.books.isbn13}`}
-                    className="hover:underline"
-                  >
-                    <strong className="text-lg">{review.books.title}</strong>
-                  </Link>
-                )}
+                <Link
+                  href={`/book/${review.book_isbn}`}
+                  className="hover:underline"
+                >
+                  <strong className="text-lg">{review.book_title}</strong>
+                </Link>
+                <p className="text-sm text-gray-600">{review.book_author}</p>
                 <p className="mt-2 text-gray-700 italic">"{review.review}"</p>
                 <time className="text-sm text-gray-500 mt-auto pt-2">
                   {new Date(review.created_at).toLocaleDateString()}

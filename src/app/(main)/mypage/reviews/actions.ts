@@ -19,6 +19,9 @@ export async function addReview(formData: FormData) {
   const validatedFields = reviewSchema.safeParse({
     book_isbn: formData.get('book_isbn'),
     review: formData.get('review'),
+    book_title: formData.get('book_title'),
+    book_author: formData.get('book_author'),
+    book_cover: formData.get('book_cover'),
   });
 
   // 유효성 검사 실패 시
@@ -29,7 +32,8 @@ export async function addReview(formData: FormData) {
     };
   }
 
-  const { book_isbn, review } = validatedFields.data;
+  const { book_isbn, review, book_title, book_author, book_cover } =
+    validatedFields.data;
 
   try {
     await prisma.reviews.create({
@@ -37,10 +41,13 @@ export async function addReview(formData: FormData) {
         user_id: user.id, // 인증된 사용자 ID
         book_isbn: book_isbn,
         review: review,
+        book_title: book_title,
+        book_author: book_author,
+        book_cover: book_cover,
       },
     });
 
-    revalidatePath('/mypage/read-books');
+    revalidatePath('/mypage/reviews');
     return { success: true, message: '기록이 추가되었습니다.' };
   } catch (e: any) {
     if (e.code === 'P2002') {
@@ -72,15 +79,6 @@ export async function getMyReviews() {
       },
       orderBy: {
         created_at: 'desc',
-      },
-      include: {
-        books: {
-          select: {
-            isbn13: true,
-            title: true,
-            cover: true,
-          },
-        },
       },
     });
     return reviews;

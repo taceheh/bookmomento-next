@@ -8,13 +8,14 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { reviewSchema, type ReviewFormData } from '@/lib/schemas';
 import { addReview } from '@/app/(main)/mypage/reviews/actions';
-import { useReviewModalStore } from '@/stores/modalStore';
 import { BookSearchModal } from '@/components/mypage/BookSearchModal';
+import { useReviewModalStore } from '@/stores/modalStore';
 
 type Book = {
   isbn13: string;
   title: string;
   cover: string;
+  author: string;
 };
 
 export default function NewReviewPage() {
@@ -35,12 +36,18 @@ export default function NewReviewPage() {
     defaultValues: {
       book_isbn: '',
       review: '',
+      book_title: '',
+      book_author: '',
+      book_cover: '',
     },
   });
 
   const handleBookSelect = (book: Book) => {
     setSelectedBook(book);
     setValue('book_isbn', book.isbn13, { shouldValidate: true });
+    setValue('book_title', book.title, { shouldValidate: true });
+    setValue('book_author', book.author, { shouldValidate: true });
+    setValue('book_cover', book.cover || '', { shouldValidate: true });
   };
 
   const onSubmit = async (data: ReviewFormData) => {
@@ -48,6 +55,11 @@ export default function NewReviewPage() {
     const formData = new FormData();
     formData.append('book_isbn', data.book_isbn);
     formData.append('review', data.review);
+    formData.append('book_title', data.book_title);
+    formData.append('book_author', data.book_author);
+    if (data.book_cover) {
+      formData.append('book_cover', data.book_cover);
+    }
 
     const result = await addReview(formData);
 
@@ -91,6 +103,7 @@ export default function NewReviewPage() {
                 />
                 <div className="flex flex-col justify-center">
                   <h3 className="font-medium">{selectedBook.title}</h3>
+                  <p className="text-sm text-gray-600">{selectedBook.author}</p>
                   <button
                     type="button"
                     onClick={() => openBookSearchModal()}
@@ -110,6 +123,10 @@ export default function NewReviewPage() {
               </button>
             )}
             <input type="hidden" {...register('book_isbn')} />
+            <input type="hidden" {...register('book_title')} />
+            <input type="hidden" {...register('book_author')} />
+            <input type="hidden" {...register('book_cover')} />
+
             {errors.book_isbn && (
               <p className="text-red-500 text-sm">{errors.book_isbn.message}</p>
             )}

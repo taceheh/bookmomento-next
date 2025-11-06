@@ -432,7 +432,6 @@ model books {
   link                 String?
   created_at           DateTime? @default(now()) @db.Timestamptz(6)
   updated_at           DateTime? @default(now()) @db.Timestamptz(6)
-  reviews              reviews[]
 
   @@schema("public")
 }
@@ -470,7 +469,6 @@ model reviews {
   book_title  String
   book_author String
   book_cover  String?
-  books       books      @relation(fields: [book_isbn], references: [isbn13], onDelete: NoAction, onUpdate: NoAction)
   users       auth_users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([user_id, book_isbn], map: "reviews_user_id_book_id_key")
