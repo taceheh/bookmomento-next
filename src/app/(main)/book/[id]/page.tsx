@@ -5,7 +5,6 @@ import { Book } from '@/types/book';
 import { Suspense } from 'react';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-
 async function getBookDetail(id: string): Promise<Book | null> {
   try {
     const res = await fetch(`${BASE_URL}/api/book/bookdetail?isbn=${id}`);
@@ -28,7 +27,11 @@ async function getInitialReactions(id: string) {
   }
 }
 
-export default async function Page({ params }: { params: { id: string } }) {
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
 
   const [book, reactionData] = await Promise.all([

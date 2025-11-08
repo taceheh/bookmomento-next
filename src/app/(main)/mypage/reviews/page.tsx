@@ -50,7 +50,9 @@ export default async function ReviewsPage() {
                   <strong className="text-lg">{review.book_title}</strong>
                 </Link>
                 <p className="text-sm text-gray-600">{review.book_author}</p>
-                <p className="mt-2 text-gray-700 italic">"{review.review}"</p>
+                <p className="mt-2 text-gray-700 italic">
+                  &quot;{review.review}&quot;
+                </p>
                 <time className="text-sm text-gray-500 mt-auto pt-2">
                   {new Date(review.created_at).toLocaleDateString()}
                 </time>
