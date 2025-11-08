@@ -3,6 +3,7 @@
 import { useAuthStore } from '@/stores/authStore';
 import useSWR from 'swr';
 import Button from './ui/Button';
+import Image from 'next/image';
 
 const fetcher = async (url: string) => {
   // console.log('Fetching:', url);
@@ -117,11 +118,19 @@ export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
                 <div className="font-bold text-lg mb-1">{item.title}</div>
                 <div className="text-sm text-gray-600 mb-2">{item.author}</div>
                 {item.cover && (
-                  <img
+                  <Image
                     src={item.cover}
                     alt={item.title}
+                    width={64}
+                    height={96}
                     className="w-16 h-24 object-cover"
+                    unoptimized
                   />
+                  // <img
+                  //   src={item.cover}
+                  //   alt={item.title}
+                  //   className="w-16 h-24 object-cover"
+                  // />
                 )}
                 <div className="text-xs text-gray-400 mt-2">
                   좋아요한 날짜: {new Date(item.likedAt).toLocaleDateString()}

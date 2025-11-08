@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Autoplay, EffectFade } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
 
@@ -36,11 +37,19 @@ export default function Slider({ loading }: { loading?: boolean }) {
         {slides.map((s, idx) => {
           const slideInner = (
             <div className="w-full h-[400px] relative ">
-              <img
+              <Image
                 src={s.src}
                 alt={s.title ?? `slide-${idx + 1}`}
                 className="w-full h-full object-cover"
+                width={200}
+                height={150}
+                unoptimized
               />
+              {/* <img
+                src={s.src}
+                alt={s.title ?? `slide-${idx + 1}`}
+                className="w-full h-full object-cover"
+              /> */}
             </div>
           );
 
