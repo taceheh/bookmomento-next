@@ -9,11 +9,8 @@ export async function GET(
   try {
     const { type } = await params;
 
-    // URL에서 userId 파라미터 가져오기
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
-
-    // console.log('API called:', { type, userId });
 
     if (!userId) {
       return NextResponse.json(
@@ -29,24 +26,28 @@ export async function GET(
         orderBy: { created_at: 'desc' },
       });
 
-      // console.log('Found likes:', likes.length);
+      const likedIsbns = likes.map((like) => like.book_isbn.trim());
 
-      // 책 정보를 별도로 조회
-      const booksData = await Promise.all(
-        likes.map(async (like) => {
-          const book = await prisma.books.findUnique({
-            where: { isbn13: like.book_isbn },
-          });
+      const books = await prisma.books.findMany({
+        where: {
+          isbn10: { in: likedIsbns },
+        },
+      });
 
-          return {
-            id: like.book_isbn,
-            title: book?.title || 'Unknown Title',
-            author: book?.author || 'Unknown Author',
-            cover: book?.cover || '',
-            likedAt: like.created_at,
-          };
-        }),
-      );
+      const bookMap = new Map(books.map((book) => [book.isbn10, book]));
+
+      const booksData = likes.map((like) => {
+        const cleanIsbn = like.book_isbn.trim(); // (이 값은 ISBN-10)
+        const book = bookMap.get(cleanIsbn);
+
+        return {
+          id: like.book_isbn, // (ISBN-10)
+          title: book?.title || 'Unknown Title',
+          author: book?.author || 'Unknown Author',
+          cover: book?.cover || '',
+          likedAt: like.created_at,
+        };
+      });
 
       return NextResponse.json(booksData);
     }
@@ -54,11 +55,9 @@ export async function GET(
     if (type === 'comments') {
       // 내가 쓴 댓글
       const comments = await prisma.comments.findMany({
-        where: { user_id: userId },
+        where: { user_id: userId, deleted_at: null },
         orderBy: { created_at: 'desc' },
       });
-
-      // console.log('Found comments:', comments.length);
 
       return NextResponse.json(
         comments.map((c) => ({
