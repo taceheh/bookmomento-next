@@ -10,7 +10,8 @@ export const Footer = () => {
         </p>
         <p>
           <a
-            href="https://github.com/your-github-id/bookmomento"
+            href="https://github.com/taceheh/bookmomento-next
+"
             target="_blank"
             rel="noopener noreferrer"
             className="underline hover:text-gray-600"
