@@ -3,6 +3,8 @@
 import { Bell, Search, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useAuthStore } from '@/stores/authStore';
+import { useRouter } from 'next/navigation';
 
 const tab = ['베스트셀러', '신간추천', '리뷰 순위', '좋아요 순위'];
 
@@ -10,11 +12,26 @@ export const SortTabBar = () => {
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState('');
 
+  const router = useRouter();
+  const { user, loading } = useAuthStore();
+
   const handleSearchClick = () => {
     if (searching && query) {
       console.log('검색 실행:', query);
     }
     setSearching(true);
+  };
+
+  const handleMyPageClick = (e: React.MouseEvent) => {
+    if (loading) {
+      e.preventDefault();
+      return;
+    }
+
+    if (!user) {
+      e.preventDefault();
+      router.push('/signin');
+    }
   };
 
   return (
@@ -49,9 +66,21 @@ export const SortTabBar = () => {
 
       <div className="flex items-center">
         <Bell className="w-5" />
-        <Link href="/mypage" prefetch={false} aria-label="마이페이지">
-          <UserRound className="w-5 ml-4" />
-        </Link>
+
+        {!loading && (
+          <Link
+            href="/mypage"
+            onClick={handleMyPageClick}
+            prefetch={false}
+            aria-label="마이페이지"
+          >
+            <UserRound className="w-5 ml-4" />
+          </Link>
+        )}
+
+        {loading && (
+          <div className="w-5 h-5 ml-4 bg-gray-200 rounded-full animate-pulse" />
+        )}
       </div>
     </nav>
   );
