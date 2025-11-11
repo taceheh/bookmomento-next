@@ -3,7 +3,7 @@ import { SortTabBar } from '@/components/sortTabBar';
 import { Book } from '@/types/book';
 import Section from '@/components/Section';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 interface RankedBookItem {
   isbn: string;

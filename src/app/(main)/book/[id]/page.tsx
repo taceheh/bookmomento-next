@@ -4,7 +4,7 @@ import CommentSkeleton from '@/components/book/CommentSkeleton';
 import { Book } from '@/types/book';
 import { Suspense } from 'react';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 async function getBookDetail(id: string): Promise<Book | null> {
   try {
     const res = await fetch(`${BASE_URL}/api/book/bookdetail?isbn=${id}`);

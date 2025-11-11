@@ -1,6 +1,6 @@
 // src/lib/fetchers.ts (예시 - 없다면 page.tsx 상단에)
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 async function getBestSellers() {
   const res = await fetch(`${BASE_URL}/api/book/bestseller`, {

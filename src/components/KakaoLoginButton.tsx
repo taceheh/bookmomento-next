@@ -2,7 +2,7 @@
 
 import { supabase } from '@/lib/supabase';
 import Image from 'next/image';
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 export default function KakaoLoginButton() {
   async function signInWithKakao() {
     const next = encodeURIComponent('/mypage');
