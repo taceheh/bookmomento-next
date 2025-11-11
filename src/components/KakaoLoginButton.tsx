@@ -2,14 +2,14 @@
 
 import { supabase } from '@/lib/supabase';
 import Image from 'next/image';
-
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 export default function KakaoLoginButton() {
   async function signInWithKakao() {
     const next = encodeURIComponent('/mypage');
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'kakao',
       options: {
-        redirectTo: `http://localhost:3000/auth/callback?next=${next}`,
+        redirectTo: `${BASE_URL}/auth/callback?next=${next}`,
       },
     });
 
