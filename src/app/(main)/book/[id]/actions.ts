@@ -171,7 +171,7 @@ export async function deleteComment(bookId: string, commentId: string) {
       SELECT "id" FROM "CommentTree";
     `;
 
-    const idsToDelete = commentTreeIds.map((row) => row.id);
+    const idsToDelete = commentTreeIds.map((row: any) => row.id);
 
     console.log(
       `[ACTION-DELETE] Found ${
