@@ -14,15 +14,12 @@ const fetcher = async (url: string) => {
   }
 
   const data = await response.json();
-  // console.log('📦 Data:', data);
   return data;
 };
 
 export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
-  // 스토어에서 직접 사용자 정보 가져오기
   const { user, loading: authLoading } = useAuthStore();
 
-  // API 엔드포인트 - 사용자 ID를 URL에 포함
   const endpoint = user?.id ? `/api/likes/${type}?userId=${user.id}` : null;
 
   const { data, error, isLoading, mutate } = useSWR(endpoint, fetcher, {
@@ -30,17 +27,14 @@ export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
     revalidateOnReconnect: false,
   });
 
-  // 인증 로딩 중
   if (authLoading) {
     return <div>인증 확인 중...</div>;
   }
 
-  // 로그인 안 됨
   if (!user?.id) {
     return <div>로그인이 필요합니다.</div>;
   }
 
-  // API 로딩 중
   if (isLoading) {
     return (
       <div>
@@ -49,7 +43,6 @@ export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
     );
   }
 
-  // 에러 발생
   if (error) {
     return (
       <div>
@@ -77,7 +70,6 @@ export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
     );
   }
 
-  // 잘못된 데이터 형식
   if (!Array.isArray(data)) {
     return (
       <div>
@@ -100,7 +92,6 @@ export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
     );
   }
 
-  // 데이터 표시
   return (
     <div>
       <div className="mb-4 flex justify-between items-center">
