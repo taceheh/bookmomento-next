@@ -6,6 +6,10 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
 
+import { useAuthStore } from '@/stores/authStore';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+
 interface ReactionData {
   likes: number;
   dislikes: number;
@@ -57,6 +61,9 @@ export default function BookDetailClient({
 }: BookDetailClientProps) {
   const [book, setBook] = useState<Book | null>(initialBook);
   const queryClient = useQueryClient();
+
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuthStore();
 
   const {
     data: reactionData,
@@ -123,6 +130,7 @@ export default function BookDetailClient({
     },
     onError: (err, newReaction, context) => {
       console.error('Error toggling reaction (mutation):', err);
+      toast.error(err.message || '요청에 실패했습니다.');
       if (context?.previousReactionData) {
         queryClient.setQueryData(
           ['reactions', bookId],
@@ -135,6 +143,22 @@ export default function BookDetailClient({
     },
   });
 
+  const handleReactionClick = (reactionType: 'like' | 'dislike') => {
+    if (authLoading) return;
+
+    if (!user) {
+      toast.error('로그인이 필요한 기능입니다.', {
+        action: {
+          label: '로그인',
+          onClick: () => router.push('/login'),
+        },
+      });
+      return;
+    }
+
+    toggleReaction(reactionType);
+  };
+
   return (
     <div>
       <div className="flex h-20 items-center text-sm">
@@ -143,12 +167,6 @@ export default function BookDetailClient({
       </div>
 
       <div className="relative w-full h-96 overflow-hidden">
-        {/* <img
-          src={book?.cover}
-          alt="cover"
-          className="absolute inset-0 w-full h-full object-cover blur-md scale-110"
-        /> */}
-
         <Image
           src={book?.cover ?? ''}
           alt="cover"
@@ -177,48 +195,51 @@ export default function BookDetailClient({
       </div>
 
       <div className="px-6 text-sm pt-4 flex pb-10 border-b border-[#DBDBDB]">
-        {isReactionLoading && (
-          <div className="text-gray-500 text-xs">좋아요 정보 로딩 중...</div>
+        {(isReactionLoading || authLoading) && (
+          <div className="text-gray-500 text-xs">정보 로딩 중...</div>
         )}
-        {reactionError && (
+        {reactionError && !isReactionLoading && (
           <div className="text-red-500 text-xs">
             오류: {reactionError.message}
           </div>
         )}
 
-        {reactionData && !isReactionLoading && !reactionError && (
-          <>
-            <button
-              onClick={() => toggleReaction('like')}
-              disabled={isToggling}
-              className="inline-flex items-center px-5 py-1 bg-gray-100 rounded-full text-sm mr-2 disabled:opacity-50"
-            >
-              <ThumbsUp
-                className={
-                  reactionData.myReaction === 'like'
-                    ? 'w-4 text-blue-600 [&_*]:fill-current'
-                    : 'w-4 text-gray-600 opacity-60'
-                }
-              />
-              &nbsp; |<span className="ml-2">{reactionData.likes}</span>
-            </button>
+        {reactionData &&
+          !isReactionLoading &&
+          !reactionError &&
+          !authLoading && (
+            <>
+              <button
+                onClick={() => handleReactionClick('like')}
+                disabled={isToggling || authLoading}
+                className="inline-flex items-center px-5 py-1 bg-gray-100 rounded-full text-sm mr-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ThumbsUp
+                  className={
+                    reactionData.myReaction === 'like'
+                      ? 'w-4 text-blue-600 [&_*]:fill-current'
+                      : 'w-4 text-gray-600 opacity-60'
+                  }
+                />
+                &nbsp; |<span className="ml-2">{reactionData.likes}</span>
+              </button>
 
-            <button
-              onClick={() => toggleReaction('dislike')}
-              disabled={isToggling}
-              className="inline-flex items-center px-5 py-1 bg-gray-100 rounded-full text-sm disabled:opacity-50"
-            >
-              <ThumbsDown
-                className={
-                  reactionData.myReaction === 'dislike'
-                    ? 'w-4 text-red-600 [&_*]:fill-current'
-                    : 'w-4 text-gray-600 opacity-60'
-                }
-              />
-              &nbsp; |<span className="ml-2">{reactionData.dislikes}</span>
-            </button>
-          </>
-        )}
+              <button
+                onClick={() => handleReactionClick('dislike')}
+                disabled={isToggling || authLoading}
+                className="inline-flex items-center px-5 py-1 bg-gray-100 rounded-full text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ThumbsDown
+                  className={
+                    reactionData.myReaction === 'dislike'
+                      ? 'w-4 text-red-600 [&_*]:fill-current'
+                      : 'w-4 text-gray-600 opacity-60'
+                  }
+                />
+                &nbsp; |<span className="ml-2">{reactionData.dislikes}</span>
+              </button>
+            </>
+          )}
       </div>
 
       <div className="px-6 py-10 text-sm">{book?.description}</div>

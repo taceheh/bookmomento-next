@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { bookId: string } },
+  { params }: { params: Promise<{ bookId: string }> },
 ) {
   try {
     const { searchParams } = new URL(req.url);

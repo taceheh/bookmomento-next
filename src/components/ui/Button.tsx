@@ -22,7 +22,7 @@ export default function Button({
     'rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 
   const variantStyles = {
-    primary: 'bg-blue-500 hover:bg-blue-600 text-white',
+    primary: 'bg-black hover:bg-gray-800 text-white',
     secondary: 'bg-gray-500 hover:bg-gray-600 text-white',
     danger: 'bg-red-600 hover:bg-red-700 text-white',
     ghost: 'bg-transparent hover:bg-gray-100 text-gray-700',

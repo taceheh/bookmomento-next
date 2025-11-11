@@ -1,6 +1,7 @@
 'use client';
 
 import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
 
 export default function KakaoLoginButton() {
   async function signInWithKakao() {
@@ -18,8 +19,14 @@ export default function KakaoLoginButton() {
   }
 
   return (
-    <button type="button" onClick={signInWithKakao}>
-      카카오로 로그인
-    </button>
+    <Image
+      src="/image/kakao-login-btn.png"
+      onClick={signInWithKakao}
+      alt="카카오 로그인 이미지"
+      width={400}
+      height={10}
+      unoptimized
+      className="cursor-pointer"
+    />
   );
 }

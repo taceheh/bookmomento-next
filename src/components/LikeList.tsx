@@ -3,6 +3,7 @@
 import { useAuthStore } from '@/stores/authStore';
 import useSWR from 'swr';
 import Button from './ui/Button';
+import Image from 'next/image';
 
 const fetcher = async (url: string) => {
   // console.log('Fetching:', url);
@@ -13,15 +14,12 @@ const fetcher = async (url: string) => {
   }
 
   const data = await response.json();
-  // console.log('📦 Data:', data);
   return data;
 };
 
 export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
-  // 스토어에서 직접 사용자 정보 가져오기
   const { user, loading: authLoading } = useAuthStore();
 
-  // API 엔드포인트 - 사용자 ID를 URL에 포함
   const endpoint = user?.id ? `/api/likes/${type}?userId=${user.id}` : null;
 
   const { data, error, isLoading, mutate } = useSWR(endpoint, fetcher, {
@@ -29,17 +27,14 @@ export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
     revalidateOnReconnect: false,
   });
 
-  // 인증 로딩 중
   if (authLoading) {
     return <div>인증 확인 중...</div>;
   }
 
-  // 로그인 안 됨
   if (!user?.id) {
     return <div>로그인이 필요합니다.</div>;
   }
 
-  // API 로딩 중
   if (isLoading) {
     return (
       <div>
@@ -48,7 +43,6 @@ export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
     );
   }
 
-  // 에러 발생
   if (error) {
     return (
       <div>
@@ -76,7 +70,6 @@ export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
     );
   }
 
-  // 잘못된 데이터 형식
   if (!Array.isArray(data)) {
     return (
       <div>
@@ -99,7 +92,6 @@ export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
     );
   }
 
-  // 데이터 표시
   return (
     <div>
       <div className="mb-4 flex justify-between items-center">
@@ -117,11 +109,19 @@ export default function LikeList({ type }: { type: 'posts' | 'comments' }) {
                 <div className="font-bold text-lg mb-1">{item.title}</div>
                 <div className="text-sm text-gray-600 mb-2">{item.author}</div>
                 {item.cover && (
-                  <img
+                  <Image
                     src={item.cover}
                     alt={item.title}
+                    width={64}
+                    height={96}
                     className="w-16 h-24 object-cover"
+                    unoptimized
                   />
+                  // <img
+                  //   src={item.cover}
+                  //   alt={item.title}
+                  //   className="w-16 h-24 object-cover"
+                  // />
                 )}
                 <div className="text-xs text-gray-400 mt-2">
                   좋아요한 날짜: {new Date(item.likedAt).toLocaleDateString()}

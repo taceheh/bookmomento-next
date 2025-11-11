@@ -60,7 +60,7 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { bookId: string } },
+  { params }: { params: Promise<{ bookId: string }> },
 ) {
   const supabase = await supabaseServer();
   const {

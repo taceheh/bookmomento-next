@@ -6,10 +6,6 @@ import Link from 'next/link';
 export const dynamic = 'force-dynamic';
 
 export default async function Page() {
-  // const user = await getUserServer();
-  const user = await requireUserServer('/mypage');
-  console.log(user);
-
   return (
     <div>
       <div>

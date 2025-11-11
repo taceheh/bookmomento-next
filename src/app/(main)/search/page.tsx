@@ -162,7 +162,8 @@ export default function SearchPage() {
 
       <div className="py-10">
         <div className="py-10">
-          <span>' {query} '</span> 에 대한 {data?.pages?.[0]?.totalResults || 0}
+          <span>&apos; {query} &apos;</span> 에 대한{' '}
+          {data?.pages?.[0]?.totalResults || 0}
           개의 검색 결과
         </div>
 

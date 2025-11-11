@@ -15,6 +15,9 @@ import {
   deleteComment,
 } from '@/app/(main)/book/[id]/actions';
 
+import { useAuthStore } from '@/stores/authStore';
+import { toast } from 'sonner';
+
 interface CommentListClientProps {
   bookId: string;
   initialComments: CommentItemType[];
@@ -29,8 +32,9 @@ export default function CommentListClient({
   const router = useRouter();
   const [count, setCount] = useState(initialCommentCount);
   const [comments, setComments] = useState<CommentItemType[]>(initialComments);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [isPendingAdd, startTransitionAdd] = useTransition();
+
+  const { user, loading: authLoading } = useAuthStore();
 
   const {
     register,
@@ -43,20 +47,30 @@ export default function CommentListClient({
   });
 
   const onValidSubmit = async (data: CommentFormData) => {
-    setSubmitError(null);
+    if (authLoading) return;
+    if (!user) {
+      toast.error('로그인이 필요한 기능입니다.', {
+        action: {
+          label: '로그인',
+          onClick: () => router.push('/login'),
+        },
+      });
+      return;
+    }
+
     const formData = new FormData();
     formData.append('body', data.body);
 
     startTransitionAdd(async () => {
       const result = await addComment(bookId, null, formData);
       if (result?.error) {
-        setSubmitError(result.error);
+        toast.error(result.error);
       } else if (result?.success) {
         reset();
         setCount((prev) => prev + 1);
         router.refresh();
       } else {
-        setSubmitError('알 수 없는 오류가 발생했습니다.');
+        toast.error('알 수 없는 오류가 발생했습니다.');
       }
     });
   };
@@ -70,29 +84,40 @@ export default function CommentListClient({
     <>
       <div className="pb-10">리뷰 ({count}) </div>
 
-      <form onSubmit={handleSubmit(onValidSubmit)} className="space-y-2">
-        <textarea
-          placeholder="리뷰를 입력하세요"
-          className={`w-full h-20 border rounded-lg p-2 align-top pt-2 ${errors.body ? 'border-red-500' : 'border-gray-300'}`}
-          {...register('body')}
-          disabled={isPendingAdd}
-        />
-        {errors.body && (
-          <p className="text-sm text-red-600">{errors.body.message}</p>
-        )}
-        {submitError && <p className="text-sm text-red-600">{submitError}</p>}
-        <Button
-          type="submit"
-          variant="outline"
-          size="full"
-          isLoading={isPendingAdd}
-          loadingText="작성 중..."
-        >
-          리뷰 작성
-        </Button>
-      </form>
+      {authLoading ? (
+        <div className="w-full h-36 border rounded-lg p-2 bg-gray-100 animate-pulse" />
+      ) : user ? (
+        <form onSubmit={handleSubmit(onValidSubmit)} className="space-y-2">
+          <textarea
+            placeholder="리뷰를 입력하세요"
+            className={`w-full h-20 border rounded-lg p-2 align-top pt-2 ${
+              errors.body ? 'border-red-500' : 'border-gray-300'
+            }`}
+            {...register('body')}
+            disabled={isPendingAdd}
+          />
+          {errors.body && (
+            <p className="text-sm text-red-600">{errors.body.message}</p>
+          )}
+          <Button
+            type="submit"
+            variant="outline"
+            size="full"
+            isLoading={isPendingAdd}
+            loadingText="작성 중..."
+          >
+            리뷰 작성
+          </Button>
+        </form>
+      ) : (
+        <div className="w-full h-36 border rounded-lg p-4 text-center text-gray-500 bg-gray-50 flex items-center justify-center">
+          <Button onClick={() => router.push('/signin')}>
+            로그인하고 리뷰를 작성해보세요.
+          </Button>
+        </div>
+      )}
 
-      <CommentList bookIsbn={bookId} roots={comments} />
+      <CommentList bookIsbn={bookId} roots={comments} user={user} />
     </>
   );
 }
@@ -100,15 +125,17 @@ export default function CommentListClient({
 function CommentList({
   bookIsbn,
   roots,
+  user,
 }: {
   bookIsbn: string;
   roots: CommentItemType[];
+  user: any | null;
 }) {
   return (
     <ul className="mt-6 space-y-6">
       {roots.map((c) => (
         <li key={c.id}>
-          <CommentItem bookIsbn={bookIsbn} comment={c} depth={0} />
+          <CommentItem bookIsbn={bookIsbn} comment={c} depth={0} user={user} />
         </li>
       ))}
     </ul>
@@ -119,12 +146,16 @@ function CommentItem({
   bookIsbn,
   comment,
   depth,
+  user,
 }: {
   bookIsbn: string;
   comment: CommentItemType;
   depth: number;
+  user: any | null;
 }) {
   const router = useRouter();
+  const authLoading = useAuthStore((state) => state.loading);
+
   const [openReplies, setOpenReplies] = useState(false);
   const [loading, setLoading] = useState(false);
   const [replyOpen, setReplyOpen] = useState(false);
@@ -134,10 +165,6 @@ function CommentItem({
   const [isPendingReply, startTransitionReply] = useTransition();
   const [isPendingEdit, startTransitionEdit] = useTransition();
   const [isPendingDelete, startTransitionDelete] = useTransition();
-
-  const [replySubmitError, setReplySubmitError] = useState<string | null>(null);
-  const [editSubmitError, setEditSubmitError] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const canReply = depth < 1;
 
@@ -165,7 +192,9 @@ function CommentItem({
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/book/${encodeURIComponent(bookIsbn)}/comments?parent_id=${comment.id}`,
+        `/api/book/${encodeURIComponent(bookIsbn)}/comments?parent_id=${
+          comment.id
+        }`,
         { cache: 'no-store' },
       );
       if (!res.ok) {
@@ -175,6 +204,7 @@ function CommentItem({
       setReplies(j.items ?? []);
     } catch (error) {
       console.error('Error loading replies:', error);
+      toast.error('답글을 불러오는 중 오류가 발생했습니다.');
       setReplies([]);
     } finally {
       setLoading(false);
@@ -191,14 +221,24 @@ function CommentItem({
   };
 
   const onValidSubmitReply = async (data: CommentFormData) => {
-    setReplySubmitError(null);
+    if (authLoading) return;
+    if (!user) {
+      toast.error('로그인이 필요한 기능입니다.', {
+        action: {
+          label: '로그인',
+          onClick: () => router.push('/login'),
+        },
+      });
+      return;
+    }
+
     const formData = new FormData();
     formData.append('body', data.body);
 
     startTransitionReply(async () => {
       const result = await addComment(bookIsbn, comment.id, formData);
       if (result?.error) {
-        setReplySubmitError(result.error);
+        toast.error(result.error);
       } else if (result?.success) {
         resetReply();
         setReplyOpen(false);
@@ -206,36 +246,53 @@ function CommentItem({
         if (!openReplies) await loadReplies();
         setOpenReplies(true);
       } else {
-        setReplySubmitError('알 수 없는 오류가 발생했습니다.');
+        toast.error('알 수 없는 오류가 발생했습니다.');
       }
     });
   };
 
   const onValidSubmitEdit = async (data: CommentFormData) => {
-    setEditSubmitError(null);
+    if (authLoading) return;
+    if (!user || user.id !== comment.user_id) {
+      toast.error('수정할 권한이 없습니다.');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('body', data.body);
 
     startTransitionEdit(async () => {
       const result = await editComment(bookIsbn, comment.id, formData);
       if (result?.error) {
-        setEditSubmitError(result.error);
+        toast.error(result.error);
       } else if (result?.success) {
         setIsEditing(false);
         router.refresh();
       } else {
-        setEditSubmitError('알 수 없는 오류가 발생했습니다.');
+        toast.error('알 수 없는 오류가 발생했습니다.');
       }
     });
   };
 
   const handleDelete = async () => {
-    setDeleteError(null);
+    if (authLoading) return;
+    if (!user || user.id !== comment.user_id) {
+      toast.error('삭제할 권한이 없습니다.');
+      return;
+    }
+
+    if (
+      !window.confirm('댓글을 정말 삭제하시겠습니까? 답글도 모두 삭제됩니다.')
+    ) {
+      return;
+    }
+
     startTransitionDelete(async () => {
       const result = await deleteComment(bookIsbn, comment.id);
       if (result?.error) {
-        setDeleteError(result.error);
+        toast.error(result.error);
       } else if (result?.success) {
+        toast.success('댓글이 삭제되었습니다.');
         router.refresh();
       }
     });
@@ -254,16 +311,15 @@ function CommentItem({
           className="mt-2 space-y-2"
         >
           <textarea
-            className={`w-full rounded-lg border p-2 text-sm ${errorsEdit.body ? 'border-red-500' : 'border-gray-300'}`}
+            className={`w-full rounded-lg border p-2 text-sm ${
+              errorsEdit.body ? 'border-red-500' : 'border-gray-300'
+            }`}
             rows={3}
             {...registerEdit('body')}
             disabled={isPendingEdit}
           />
           {errorsEdit.body && (
             <p className="text-xs text-red-600">{errorsEdit.body.message}</p>
-          )}
-          {editSubmitError && (
-            <p className="text-xs text-red-600">{editSubmitError}</p>
           )}
           <div className="flex gap-2">
             <Button
@@ -298,7 +354,7 @@ function CommentItem({
       )}
 
       <div className="mt-3 flex items-center gap-3 text-sm">
-        {canReply && !comment.deleted_at && (
+        {user && canReply && !comment.deleted_at && (
           <button
             type="button"
             onClick={() => setReplyOpen((v) => !v)}
@@ -314,7 +370,7 @@ function CommentItem({
         >
           {openReplies ? '답글 접기' : '답글 보기'}
         </button>
-        {!comment.deleted_at && !isEditing && (
+        {user?.id === comment.user_id && !comment.deleted_at && !isEditing && (
           <div className="flex gap-2 ml-auto">
             <button
               onClick={() => {
@@ -336,17 +392,16 @@ function CommentItem({
           </div>
         )}
       </div>
-      {deleteError && (
-        <p className="text-xs text-red-600 mt-1">{deleteError}</p>
-      )}
 
-      {replyOpen && canReply && (
+      {replyOpen && canReply && user && (
         <form
           onSubmit={handleSubmitReply(onValidSubmitReply)}
           className="mt-3 space-y-2"
         >
           <textarea
-            className={`w-full rounded-lg border p-2 ${errorsReply.body ? 'border-red-500' : 'border-gray-300'}`}
+            className={`w-full rounded-lg border p-2 ${
+              errorsReply.body ? 'border-red-500' : 'border-gray-300'
+            }`}
             rows={3}
             placeholder="답글을 입력하세요"
             {...registerReply('body')}
@@ -354,9 +409,6 @@ function CommentItem({
           />
           {errorsReply.body && (
             <p className="text-xs text-red-600">{errorsReply.body.message}</p>
-          )}
-          {replySubmitError && (
-            <p className="text-xs text-red-600">{replySubmitError}</p>
           )}
           <div className="mt-2 flex gap-2">
             <Button
@@ -393,7 +445,7 @@ function CommentItem({
                 key={r.id}
                 bookIsbn={bookIsbn}
                 reply={r}
-                refreshReplies={loadReplies} // loadReplies 함수 전달
+                refreshReplies={loadReplies}
               />
             ))}
         </div>
@@ -405,18 +457,18 @@ function CommentItem({
 function ReplyItem({
   bookIsbn,
   reply,
-  refreshReplies, // refreshReplies prop 추가
+  refreshReplies,
 }: {
   bookIsbn: string;
   reply: CommentItemType;
-  refreshReplies: () => Promise<void>; // prop 타입 정의
+  refreshReplies: () => Promise<void>;
 }) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isPendingEdit, startTransitionEdit] = useTransition();
   const [isPendingDelete, startTransitionDelete] = useTransition();
-  const [editSubmitError, setEditSubmitError] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const { user, loading: authLoading } = useAuthStore();
 
   const {
     register: registerEdit,
@@ -429,32 +481,46 @@ function ReplyItem({
   });
 
   const onValidSubmitEdit = async (data: CommentFormData) => {
-    setEditSubmitError(null);
+    if (authLoading) return;
+    if (!user || user.id !== reply.user_id) {
+      toast.error('수정할 권한이 없습니다.');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('body', data.body);
 
     startTransitionEdit(async () => {
       const result = await editComment(bookIsbn, reply.id, formData);
       if (result?.error) {
-        setEditSubmitError(result.error);
+        toast.error(result.error);
       } else if (result?.success) {
         setIsEditing(false);
-        router.refresh();
+        toast.success('답글이 수정되었습니다.');
         await refreshReplies(); // 클라이언트 답글 목록 즉시 갱신
       } else {
-        setEditSubmitError('알 수 없는 오류가 발생했습니다.');
+        toast.error('알 수 없는 오류가 발생했습니다.');
       }
     });
   };
 
   const handleDelete = async () => {
-    setDeleteError(null);
+    if (authLoading) return;
+    if (!user || user.id !== reply.user_id) {
+      toast.error('삭제할 권한이 없습니다.');
+      return;
+    }
+
+    if (!window.confirm('답글을 정말 삭제하시겠습니까?')) {
+      return;
+    }
+
     startTransitionDelete(async () => {
       const result = await deleteComment(bookIsbn, reply.id);
       if (result?.error) {
-        setDeleteError(result.error);
+        toast.error(result.error);
       } else if (result?.success) {
-        router.refresh();
+        toast.success('답글이 삭제되었습니다.');
         await refreshReplies(); // 클라이언트 답글 목록 즉시 갱신
       }
     });
@@ -473,16 +539,15 @@ function ReplyItem({
           className="mt-2 space-y-2"
         >
           <textarea
-            className={`w-full rounded-lg border p-2 text-sm bg-white ${errorsEdit.body ? 'border-red-500' : 'border-gray-300'}`}
+            className={`w-full rounded-lg border p-2 text-sm bg-white ${
+              errorsEdit.body ? 'border-red-500' : 'border-gray-300'
+            }`}
             rows={3}
             {...registerEdit('body')}
             disabled={isPendingEdit}
           />
           {errorsEdit.body && (
             <p className="text-xs text-red-600">{errorsEdit.body.message}</p>
-          )}
-          {editSubmitError && (
-            <p className="text-xs text-red-600">{editSubmitError}</p>
           )}
           <div className="mt-2 flex gap-2">
             <Button
@@ -515,11 +580,8 @@ function ReplyItem({
           )}
         </div>
       )}
-      {deleteError && (
-        <p className="text-xs text-red-600 mt-1">{deleteError}</p>
-      )}
 
-      {!isEditing && !reply.deleted_at && (
+      {!isEditing && !reply.deleted_at && user?.id === reply.user_id && (
         <div className="mt-2 flex gap-2 justify-end">
           <button
             onClick={() => {

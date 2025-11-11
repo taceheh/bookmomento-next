@@ -1,26 +1,34 @@
-// components/KakaoLogoutButton.tsx
-import { supabaseServer } from '@/lib/supabaseServer';
-import { redirect } from 'next/navigation';
+'use client';
+
+import { signOutAction } from '@/app/auth/action';
+import { useRouter } from 'next/navigation';
+import { useTransition } from 'react';
 
 export function KakaoLogoutButton() {
-  async function signOut() {
-    'use server'; // Server Action으로 만들기
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
-    const sb = await supabaseServer();
-    const { error } = await sb.auth.signOut();
-    if (!error) {
-      redirect('/signin');
-    }
-  }
+  const handleSignOut = () => {
+    startTransition(async () => {
+      const result = await signOutAction();
+
+      if (result.success) {
+        router.push('/signin');
+        router.refresh();
+      } else {
+        console.error(result.error);
+      }
+    });
+  };
 
   return (
-    <form action={signOut}>
-      <button
-        type="submit"
-        className="bg-black text-white text-sm flex justify-center w-[90%] m-auto mt-2 p-3"
-      >
-        로그아웃
-      </button>
-    </form>
+    <button
+      type="button"
+      onClick={handleSignOut}
+      disabled={isPending}
+      className="bg-black text-white text-sm flex justify-center w-[90%] m-auto mt-2 p-3"
+    >
+      {isPending ? '로그아웃 중...' : '로그아웃'}
+    </button>
   );
 }

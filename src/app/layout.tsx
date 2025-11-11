@@ -10,6 +10,7 @@ import 'swiper/css/pagination';
 import QueryProvider from '@/components/providers/QueryProvider';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import { Toaster } from 'sonner';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -29,6 +30,7 @@ export default async function RootLayout({
         <div className="max-w-[650px] min-h-screen mx-auto bg-white ">
           <QueryProvider>
             <AuthHydrator initialUser={user} />
+            <Toaster richColors position="bottom-center" />
             <Header />
             <main>{children}</main>
             <Footer />
