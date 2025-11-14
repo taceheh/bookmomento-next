@@ -158,12 +158,19 @@ export default function BookDetailClient({
 
     toggleReaction(reactionType);
   };
+  const handleUnderDevClick = () => {
+    toast.info('아직 개발 중인 기능입니다.');
+  };
 
   return (
     <div>
       <div className="flex h-20 items-center text-sm">
-        <div className="ml-2 mr-8">책정보</div>
-        <div>AI 토론</div>
+        <div className="px-4 mr-2 h-full flex items-center border-black border-b-3 font-bold cursor-pointer">
+          책 정보
+        </div>
+        <div className="cursor-pointer" onClick={handleUnderDevClick}>
+          AI 토론
+        </div>
       </div>
 
       <div className="relative w-full h-96 overflow-hidden">
