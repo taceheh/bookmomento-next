@@ -6,7 +6,12 @@ import { useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'next/navigation';
 
-const tab = ['베스트셀러', '신간추천', '리뷰 순위', '좋아요 순위'];
+const tabs = [
+  { name: '베스트셀러', id: 'best-sellers' },
+  { name: '신간추천', id: 'new-releases' },
+  { name: '리뷰 순위', id: 'review-ranking' },
+  { name: '좋아요 순위', id: 'like-ranking' },
+];
 
 export const SortTabBar = () => {
   const [searching, setSearching] = useState(false);
@@ -34,6 +39,19 @@ export const SortTabBar = () => {
     }
   };
 
+  const handleTabClick = (e: React.MouseEvent, targetId: string) => {
+    e.preventDefault();
+
+    const targetElement = document.getElementById(targetId);
+
+    if (targetElement) {
+      targetElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }
+  };
+
   return (
     <nav className="relative h-10 flex justify-between items-center border-b-2 border-black px-4 text-sm">
       <Search className="w-5 cursor-pointer" onClick={handleSearchClick} />
@@ -57,10 +75,15 @@ export const SortTabBar = () => {
       )}
 
       <div className="flex justify-center items-center">
-        {tab.map((name) => (
-          <div className="px-4 whitespace-nowrap" key={name}>
-            {name}
-          </div>
+        {tabs.map((tab) => (
+          <a
+            href={`#${tab.id}`}
+            className="px-4 whitespace-nowrap cursor-pointer"
+            key={tab.name}
+            onClick={(e) => handleTabClick(e, tab.id)}
+          >
+            {tab.name}
+          </a>
         ))}
       </div>
 

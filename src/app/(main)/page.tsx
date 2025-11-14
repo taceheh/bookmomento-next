@@ -51,21 +51,31 @@ export default async function HomePage() {
   return (
     <>
       <SortTabBar />
-      <main className="max-w-screen-md mx-auto px-4 py-6 space-y-8">
+      <main className="max-w-3xl mx-auto px-4 py-6 space-y-8">
         <Slider />
-        <Section title="베스트셀러" books={bestSellers} />
-        <Section title="신간 추천" books={newBooks} />
-        <Section
-          title="리뷰 순위"
-          books={reviewRanking}
-          emptyText="아직 댓글을 단 책이 없어요!"
-        />
-        <Section
-          title="좋아요 베스트"
-          books={likeRanking}
-          emptyText="아직 좋아요를 단 책이 없어요!"
-        />
+        <div id="best-sellers">
+          <Section title="베스트셀러" books={bestSellers} />
+        </div>
 
+        <div id="new-releases">
+          <Section title="신간 추천" books={newBooks} />
+        </div>
+
+        <div id="review-ranking">
+          <Section
+            title="리뷰 순위"
+            books={reviewRanking}
+            emptyText="아직 댓글을 단 책이 없어요!"
+          />
+        </div>
+
+        <div id="like-ranking">
+          <Section
+            title="좋아요 베스트"
+            books={likeRanking}
+            emptyText="아직 좋아요를 단 책이 없어요!"
+          />
+        </div>
         <footer className="text-center text-xs text-gray-400 border-t pt-6">
           © 2025 책담 冊談
         </footer>
