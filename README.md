@@ -520,10 +520,7 @@ if (result.error) {
 📁 components (클라이언트 컴포넌트)
 ┣ 📄 AuthHydrator.tsx
 ┣ 📁 book
-┃  ┣ 📄 BookDetailClient.tsx
-┃  ┣ 📄 CommentListClient.tsx
-┃  ┣ 📄 CommentListLoader.tsx
-┃  ┗ 📄 CommentSkeleton.tsx
+┃  ┗ 📄 ...
 ┣ 📁 layout
 ┃  ┣ 📄 header.tsx
 ┃  ┗ 📄 footer.tsx
