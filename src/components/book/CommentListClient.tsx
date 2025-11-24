@@ -241,10 +241,12 @@ function CommentItem({
         toast.error(result.error);
       } else if (result?.success) {
         resetReply();
-        setReplyOpen(false);
+        setReplyOpen(false); // 입력창 닫기
+
         router.refresh();
-        if (!openReplies) await loadReplies();
+        await loadReplies();
         setOpenReplies(true);
+        toast.success('답글이 작성되었습니다.');
       } else {
         toast.error('알 수 없는 오류가 발생했습니다.');
       }
