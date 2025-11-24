@@ -56,8 +56,7 @@ export default async function Page() {
           </div>
         </Link>
         <KakaoLogoutButton />
-        <div className="font-light text-xs flex justify-center m-4">
-          회원탈퇴
+        <div className="flex justify-center m-4">
           <DeleteAccountButton />
         </div>
       </div>

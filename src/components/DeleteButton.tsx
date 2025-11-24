@@ -47,10 +47,10 @@ export default function DeleteAccountButton({
   return (
     <Button
       onClick={handleDeleteAccount}
-      variant="danger"
+      variant="ghost"
       isLoading={isDeleting}
       loadingText="탈퇴 처리 중..."
-      className={className}
+      className="font-light text-xs"
     >
       회원탈퇴
     </Button>
