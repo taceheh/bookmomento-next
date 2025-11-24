@@ -1,4 +1,4 @@
-# <img width="100" height="100" alt="Group 10" src="https://github.com/user-attachments/assets/fdc0f6db-0ecd-41e9-828c-c475fd2058db" />
+![KakaoTalk_20251124_220946194](https://github.com/user-attachments/assets/48aca7fa-e005-449f-918a-b69066c4c378)# <img width="100" height="100" alt="Group 10" src="https://github.com/user-attachments/assets/fdc0f6db-0ecd-41e9-828c-c475fd2058db" />
 <img width="1600" height="960" alt="Group 13720 (1)" src="https://github.com/user-attachments/assets/eeb290df-fff4-467c-8861-df6f4e9631ab" />
 
 
@@ -185,6 +185,7 @@
 - **카카오 로그인**: 카카오 계정을 통한 간편 로그인 및 users 테이블 자동 프로필 생성 (DB Trigger)
 - **프로필 수정**: 사용자 닉네임 수정 기능
 - **Zustand**: useAuthStore를 통해 로그인 상태 전역 관리
+![KakaoTalk_20251124_221021225](https://github.com/user-attachments/assets/bb20a2cb-46ab-4fe3-8b09-77a80860743e)
 
 <br/><br/>
 
@@ -193,6 +194,8 @@
 - **메인 페이지**: 베스트셀러, 신간 추천, 리뷰 순위 등 도서 목록 제공 (RSC)
 - **도서 검색**: 무한 스크롤 기반 실시간 책 검색 기능 (useInfiniteQuery)
 - **도서 상세**: 책 소개, '좋아요/싫어요' 기능 (Server Shell + useQuery/useMutation)
+  
+![KakaoTalk_20251124_220946194](https://github.com/user-attachments/assets/6dcea0ef-47c5-48e5-8f65-dfd6023ef28e)
 
 <br/><br/>
 
@@ -203,6 +206,9 @@
 - **책 검색 모달**: 무한 스크롤 방식의 모달 내 책 검색 기능 (use-debounce, useInfiniteQuery)
 - **비정규화 구조**: 읽기 성능 최적화를 위해 reviews 테이블에 book_title, book_author, book_cover 중복 저장
 
+  
+![KakaoTalk_20251124_220917018](https://github.com/user-attachments/assets/1bc54585-b3f2-426a-aaf5-67eb67a47c44)
+
 <br/><br/>
 
 ### **☑️ 댓글 및 토론 (Server Actions)**
@@ -212,6 +218,9 @@
 - **연쇄 Soft Delete**: 댓글 삭제 시 재귀 쿼리(CTE)를 통해 모든 자손 댓글까지 논리적 삭제
 - **자동 갱신**: 서버 액션 성공 후 router.refresh()를 통해 댓글 목록 자동 업데이트
 - **폼 유효성 검사**: react-hook-form + zod 적용
+  
+![KakaoTalk_20251124_221032921](https://github.com/user-attachments/assets/b421c3d4-5295-4b02-97bd-02ae869b05e8)
+![KakaoTalk_20251124_220956179](https://github.com/user-attachments/assets/26c0b68f-8345-4fa6-a0a2-43de7e6359da)
 
 <br/><br/>
 
@@ -520,10 +529,7 @@ if (result.error) {
 📁 components (클라이언트 컴포넌트)
 ┣ 📄 AuthHydrator.tsx
 ┣ 📁 book
-┃  ┣ 📄 BookDetailClient.tsx
-┃  ┣ 📄 CommentListClient.tsx
-┃  ┣ 📄 CommentListLoader.tsx
-┃  ┗ 📄 CommentSkeleton.tsx
+┃  ┗ 📄 ...
 ┣ 📁 layout
 ┃  ┣ 📄 header.tsx
 ┃  ┗ 📄 footer.tsx
@@ -559,3 +565,6 @@ if (result.error) {
 
 📁 middleware.ts (라우트 보호, 인증 검사)
 ```
+---
+## 배포주소
+https://bookmomento-next.vercel.app/
